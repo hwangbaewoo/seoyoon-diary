@@ -17,6 +17,7 @@ let currentMoodData = null;
 let currentFoodData = null;
 let currentDiaryData    = null;
 let currentExerciseData = null;
+let currentPhotosData   = null;
 
 /* ── 날짜 유틸 ── */
 function todayStr() {
@@ -113,13 +114,16 @@ async function loadDateData() {
     currentFoodData     = data.food;
     currentDiaryData    = data.diary;
     currentExerciseData = data.exercise;
+    currentPhotosData   = data.photos;
   } catch {
-    currentMoodData = currentFoodData = currentDiaryData = currentExerciseData = null;
+    currentMoodData = currentFoodData = currentDiaryData = currentExerciseData = currentPhotosData = null;
   }
   renderMoodTab();
   renderFoodTab();
   renderDiary();
   renderExercise();
+  renderPhotos();
+  renderFeaturedPreview();
 }
 
 /* ══════════════════════
@@ -475,6 +479,110 @@ async function renderCalendar() {
 }
 
 /* ══════════════════════
+   사진
+══════════════════════ */
+function renderFeaturedPreview() {
+  const wrap = document.getElementById('featured-preview');
+  const img  = document.getElementById('featured-img');
+  const meta = document.getElementById('featured-meta');
+
+  const featured = currentPhotosData?.featured;
+  if (featured && currentUser) {
+    img.src = featured;
+    meta.textContent = `📅 ${formatLabel(currentDate)}`;
+    wrap.classList.remove('hidden');
+  } else {
+    wrap.classList.add('hidden');
+  }
+}
+
+function renderPhotos() {
+  ['diary','exercise','food'].forEach(type => {
+    const grid = document.getElementById(`grid-${type}`);
+    if (!grid) return;
+    grid.innerHTML = '';
+    const items = (currentPhotosData?.items || []).filter(i => i.type === type);
+    const featured = currentPhotosData?.featured;
+
+    if (!items.length) return;
+
+    items.forEach(item => {
+      const isFeatured = item.url === featured;
+      const el = document.createElement('div');
+      el.className = `photo-item${isFeatured ? ' is-featured' : ''}`;
+      el.innerHTML = `
+        <img src="${item.url}" alt="사진" loading="lazy" />
+        ${isFeatured ? '<div class="featured-badge">⭐ 대표</div>' : ''}
+        <div class="photo-item-actions">
+          <button class="photo-action-btn photo-star-btn${isFeatured ? ' starred' : ''}"
+            data-url="${item.url}">
+            ${isFeatured ? '⭐ 대표' : '☆ 대표로'}
+          </button>
+          <button class="photo-action-btn photo-del-btn" data-url="${item.url}">🗑️</button>
+        </div>
+      `;
+      // 대표 사진 설정
+      el.querySelector('.photo-star-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await api('POST', `/api/photos/${currentDate}/featured`, { url: item.url });
+        currentPhotosData.featured = item.url;
+        renderPhotos();
+        renderFeaturedPreview();
+      });
+      // 삭제
+      el.querySelector('.photo-del-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('사진을 삭제할까요?')) return;
+        const result = await api('DELETE', `/api/photos/${currentDate}`, { url: item.url });
+        currentPhotosData = result.photos;
+        renderPhotos();
+        renderFeaturedPreview();
+      });
+      grid.appendChild(el);
+    });
+  });
+}
+
+async function uploadPhoto(file, type) {
+  if (!currentUser) return;
+  const formData = new FormData();
+  formData.append('photo', file);
+  const res = await fetch(`/api/photos/${currentDate}/${type}`, {
+    method: 'POST', body: formData,
+  });
+  if (!res.ok) throw new Error('업로드 실패');
+  const result = await res.json();
+  currentPhotosData = result.photos;
+  renderPhotos();
+  renderFeaturedPreview();
+}
+
+function initPhotoUploads() {
+  document.querySelectorAll('.photo-upload-area').forEach(area => {
+    const type  = area.dataset.type;
+    const input = area.querySelector('.photo-file-input');
+
+    // 파일 선택
+    input?.addEventListener('change', async () => {
+      for (const file of input.files) await uploadPhoto(file, type);
+      input.value = '';
+    });
+
+    // 드래그 앤 드롭
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+    area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+    area.addEventListener('drop', async e => {
+      e.preventDefault();
+      area.classList.remove('drag-over');
+      if (!currentUser) return;
+      for (const file of e.dataTransfer.files) {
+        if (file.type.startsWith('image/')) await uploadPhoto(file, type);
+      }
+    });
+  });
+}
+
+/* ══════════════════════
    피드백
 ══════════════════════ */
 function showFeedback(id, msg, type) {
@@ -545,6 +653,8 @@ async function init() {
       deleteFood(btn.dataset.meal, Number(btn.dataset.idx));
     });
   });
+
+  initPhotoUploads();
 
   await checkLogin();
   await renderCalendar();

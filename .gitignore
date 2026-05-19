@@ -4,6 +4,9 @@
 # 데이터 파일 (개인 일기 데이터)
 data/
 
+# 업로드된 사진 (개인 사진)
+public/uploads/
+
 # Node.js
 node_modules/
 

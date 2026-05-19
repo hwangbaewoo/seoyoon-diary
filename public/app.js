@@ -529,8 +529,11 @@ function renderFeaturedPreview() {
     img.src = featured;
     meta.textContent = `📅 ${formatLabel(currentDate)}`;
     wrap.classList.remove('hidden');
+    // 클릭하면 라이트박스로 크게 보기
+    wrap.onclick = () => openLightbox(featured);
   } else {
     wrap.classList.add('hidden');
+    wrap.onclick = null;
   }
 }
 
@@ -559,6 +562,8 @@ function renderPhotos() {
           <button class="photo-action-btn photo-del-btn" data-url="${item.url}">🗑️</button>
         </div>
       `;
+      // 사진 클릭 → 라이트박스
+      el.querySelector('img').addEventListener('click', () => openLightbox(item.url));
       // 대표 사진 설정
       el.querySelector('.photo-star-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -679,6 +684,21 @@ function initPhotoUploads() {
 }
 
 /* ══════════════════════
+   라이트박스 (사진 크게 보기)
+══════════════════════ */
+function openLightbox(src) {
+  const lb  = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  img.src = src;
+  lb.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+/* ══════════════════════
    피드백
 ══════════════════════ */
 function showFeedback(id, msg, type) {
@@ -752,6 +772,11 @@ async function init() {
   });
 
   initPhotoUploads();
+
+  // 라이트박스 닫기
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  document.getElementById('lightbox-overlay').addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
   await checkLogin();
   await renderCalendar();

@@ -43,8 +43,10 @@
 
     <!-- 선택된 날짜 대표 사진 미리보기 -->
     <div class="featured-preview hidden" id="featured-preview">
+      <div class="featured-label">📸 오늘의 대표 사진</div>
       <img class="featured-img" id="featured-img" src="" alt="대표 사진" />
       <div class="featured-meta" id="featured-meta"></div>
+      <div class="featured-hint">사진을 클릭하면 크게 볼 수 있어요</div>
     </div>
 
     <!-- 탭 바 -->
@@ -331,6 +333,15 @@
     </section>
 
   </main>
+
+  <!-- 사진 라이트박스 -->
+  <div class="lightbox hidden" id="lightbox">
+    <div class="lightbox-overlay" id="lightbox-overlay"></div>
+    <div class="lightbox-inner">
+      <button class="lightbox-close" id="lightbox-close">✕</button>
+      <img class="lightbox-img" id="lightbox-img" src="" alt="사진 크게 보기" />
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

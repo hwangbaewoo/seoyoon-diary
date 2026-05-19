@@ -1,0 +1,554 @@
+/* ══════════════════════════════════════════
+   내 일기 — 통합 앱 v2 (감정·운동·식단·일기)
+   ══════════════════════════════════════════ */
+
+const MEALS   = ['breakfast','lunch','dinner','snack'];
+const MEAL_KO = { breakfast:'아침', lunch:'점심', dinner:'저녁', snack:'간식' };
+const EMOTION_KO = {
+  happy:'기쁨', excited:'신남', loving:'사랑', grateful:'감사', calm:'평온',
+  tired:'피곤', sad:'슬픔', depressed:'우울', angry:'화남', anxious:'불안',
+};
+
+let currentUser     = null;
+let currentDate     = todayStr();
+let calYear, calMonth;
+let selectedEmotion = null;
+let currentMoodData = null;
+let currentFoodData = null;
+let currentDiaryData    = null;
+let currentExerciseData = null;
+
+/* ── 날짜 유틸 ── */
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function formatLabel(dateStr) {
+  const [y,m,d] = dateStr.split('-');
+  const dt = new Date(Number(y), Number(m)-1, Number(d));
+  const days = ['일','월','화','수','목','금','토'];
+  return `${y}년 ${Number(m)}월 ${Number(d)}일 (${days[dt.getDay()]})`;
+}
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function getIntensityColor(v) {
+  if (v <= 4) return '#7dd3fc';
+  if (v <= 7) return '#0284c7';
+  return '#0369a1';
+}
+
+/* ── API 헬퍼 ── */
+async function api(method, url, body) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+/* ══════════════════════
+   로그인
+══════════════════════ */
+async function checkLogin() {
+  try {
+    const user = await api('GET', '/api/me');
+    currentUser = user;
+    document.getElementById('user-name').textContent = user.name;
+    document.getElementById('user-photo').src        = user.photo;
+    document.getElementById('login-btn').classList.add('hidden');
+    document.getElementById('user-info').classList.remove('hidden');
+    setFormsEnabled(true);
+  } catch {
+    currentUser = null;
+    document.getElementById('login-btn').classList.remove('hidden');
+    document.getElementById('user-info').classList.add('hidden');
+    setFormsEnabled(false);
+  }
+}
+
+function setFormsEnabled(enabled) {
+  // 감정
+  document.getElementById('mood-login-prompt').classList.toggle('hidden', enabled);
+  if (!enabled) {
+    document.getElementById('mood-form').classList.add('hidden');
+    document.getElementById('existing-mood').classList.add('hidden');
+  }
+  // 일기
+  document.getElementById('diary-login-prompt').classList.toggle('hidden', enabled);
+  document.getElementById('diary-form').classList.toggle('hidden', !enabled);
+  // 운동
+  document.getElementById('exercise-login-prompt').classList.toggle('hidden', enabled);
+  document.getElementById('exercise-form').classList.toggle('hidden', !enabled);
+  // 식단
+  document.querySelectorAll('.add-btn, .food-input, .kcal-input').forEach(el => {
+    if (enabled) el.removeAttribute('disabled');
+    else el.setAttribute('disabled','');
+  });
+}
+
+/* ══════════════════════
+   날짜 로드
+══════════════════════ */
+async function setCurrentDate(dateStr) {
+  currentDate = dateStr;
+  document.getElementById('today-label').textContent      = formatLabel(dateStr);
+  document.getElementById('exercise-date-label').textContent = formatLabel(dateStr);
+  document.querySelectorAll('.cal-day').forEach(el => {
+    el.classList.toggle('is-selected', el.dataset.date === dateStr);
+  });
+  await loadDateData();
+}
+
+async function loadDateData() {
+  if (!currentUser) {
+    currentMoodData = currentFoodData = currentDiaryData = currentExerciseData = null;
+    renderMoodTab(); renderFoodTab(); renderDiary(); renderExercise();
+    return;
+  }
+  try {
+    const data = await api('GET', `/api/data/${currentDate}`);
+    currentMoodData     = data.mood;
+    currentFoodData     = data.food;
+    currentDiaryData    = data.diary;
+    currentExerciseData = data.exercise;
+  } catch {
+    currentMoodData = currentFoodData = currentDiaryData = currentExerciseData = null;
+  }
+  renderMoodTab();
+  renderFoodTab();
+  renderDiary();
+  renderExercise();
+}
+
+/* ══════════════════════
+   감정 탭
+══════════════════════ */
+function renderMoodTab() {
+  const form     = document.getElementById('mood-form');
+  const existing = document.getElementById('existing-mood');
+  const prompt   = document.getElementById('mood-login-prompt');
+  if (!currentUser) {
+    prompt.classList.remove('hidden');
+    form.classList.add('hidden');
+    existing.classList.add('hidden');
+    return;
+  }
+  prompt.classList.add('hidden');
+  if (currentMoodData) {
+    form.classList.add('hidden');
+    existing.classList.remove('hidden');
+    document.getElementById('ex-emoji').textContent     = currentMoodData.emoji;
+    document.getElementById('ex-label').textContent     = currentMoodData.label;
+    document.getElementById('ex-intensity').textContent = currentMoodData.intensity;
+    const fill = document.getElementById('ex-bar-fill');
+    fill.style.width      = `${(currentMoodData.intensity/10)*100}%`;
+    fill.style.background = getIntensityColor(currentMoodData.intensity);
+  } else {
+    existing.classList.add('hidden');
+    form.classList.remove('hidden');
+    selectedEmotion = null;
+    document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('intensity-slider').value = 5;
+    updateSliderUI(5);
+    document.getElementById('mood-feedback').textContent = '';
+  }
+  renderMoodHistory();
+}
+
+function selectEmotion(btn) {
+  document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedEmotion = { emotion: btn.dataset.emotion, label: btn.dataset.label, emoji: btn.dataset.emoji };
+}
+
+function updateSliderUI(value) {
+  const display = document.getElementById('intensity-display');
+  display.textContent      = value;
+  display.style.background = getIntensityColor(Number(value));
+  const pct = ((value-1)/9)*100;
+  document.getElementById('intensity-slider').style.background =
+    `linear-gradient(to right, #7dd3fc ${pct}%, #e0f2fe ${pct}%)`;
+}
+
+async function saveMood() {
+  if (!selectedEmotion) { showFeedback('mood-feedback','감정을 먼저 선택해주세요!','error'); return; }
+  const intensity = Number(document.getElementById('intensity-slider').value);
+  try {
+    await api('POST', '/api/mood', { date: currentDate, ...selectedEmotion, intensity });
+    currentMoodData = { ...selectedEmotion, intensity };
+    renderMoodTab(); renderCalendar();
+    showFeedback('mood-feedback','저장됐어요 ✓','success');
+  } catch { showFeedback('mood-feedback','저장 실패','error'); }
+}
+
+function editMood() {
+  // 저장된 감정값을 폼에 채워 넣고 수정 모드로 전환
+  const form     = document.getElementById('mood-form');
+  const existing = document.getElementById('existing-mood');
+  existing.classList.add('hidden');
+  form.classList.remove('hidden');
+  // 기존 이모지 버튼 선택 상태 복원
+  if (currentMoodData) {
+    const btn = document.querySelector(`.emotion-btn[data-emotion="${currentMoodData.emotion}"]`);
+    if (btn) selectEmotion(btn);
+    document.getElementById('intensity-slider').value = currentMoodData.intensity;
+    updateSliderUI(currentMoodData.intensity);
+  }
+}
+
+async function deleteMood() {
+  if (!confirm('이 날의 감정 기록을 삭제할까요?')) return;
+  await api('DELETE', `/api/mood/${currentDate}`);
+  currentMoodData = null;
+  renderMoodTab(); renderCalendar();
+}
+
+async function renderMoodHistory() {
+  const container = document.getElementById('mood-history-list');
+  if (!currentUser) { container.innerHTML = '<div class="empty-msg">로그인 후 확인할 수 있어요.</div>'; return; }
+  try {
+    const now = new Date();
+    const [c1, c2] = await Promise.all([
+      fetch(`/api/calendar/${now.getFullYear()}/${now.getMonth()+1}`).then(r=>r.json()),
+      fetch(`/api/calendar/${now.getFullYear()}/${now.getMonth()}`).then(r=>r.json()),
+    ]);
+    const combined = {...c2,...c1};
+    const dates = Object.keys(combined).sort((a,b)=>b.localeCompare(a)).filter(d=>d!==currentDate);
+    if (!dates.length) { container.innerHTML = '<div class="empty-msg">지난 기록이 없어요!</div>'; return; }
+    container.innerHTML = '';
+    dates.slice(0,14).forEach(date => {
+      const entry = combined[date];
+      const el = document.createElement('div');
+      el.className = 'mood-history-item';
+      el.innerHTML = `
+        <span class="mh-emoji">${entry.emoji}</span>
+        <div class="mh-info">
+          <div class="mh-date">${formatLabel(date)}</div>
+          <div class="mh-label">${EMOTION_KO[entry.emotion] || entry.emotion}</div>
+        </div>
+        <button class="mh-del" data-date="${date}">✕</button>
+      `;
+      el.querySelector('.mh-del').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('삭제할까요?')) return;
+        await api('DELETE', `/api/mood/${date}`);
+        renderCalendar(); renderMoodHistory();
+      });
+      el.addEventListener('click', () => setCurrentDate(date));
+      container.appendChild(el);
+    });
+  } catch { container.innerHTML = '<div class="empty-msg">불러오기 실패</div>'; }
+}
+
+/* ══════════════════════
+   일기
+══════════════════════ */
+function renderDiary() {
+  if (!currentUser) return;
+  const textarea  = document.getElementById('diary-text');
+  const saveBtn   = document.getElementById('save-diary-btn');
+  const editBtn   = document.getElementById('edit-diary-btn');
+  const deleteBtn = document.getElementById('delete-diary-btn');
+
+  if (currentDiaryData) {
+    // 저장된 일기가 있으면 읽기 전용처럼 보이게 (수정 버튼 표시)
+    textarea.value = currentDiaryData.text || '';
+    textarea.readOnly = true;
+    textarea.style.background = '#f0f9ff';
+    saveBtn.classList.add('hidden');
+    editBtn.classList.remove('hidden');
+    deleteBtn.classList.remove('hidden');
+  } else {
+    textarea.value = '';
+    textarea.readOnly = false;
+    textarea.style.background = '';
+    saveBtn.classList.remove('hidden');
+    editBtn.classList.add('hidden');
+    deleteBtn.classList.add('hidden');
+  }
+  document.getElementById('diary-feedback').textContent = '';
+}
+
+function editDiary() {
+  const textarea = document.getElementById('diary-text');
+  textarea.readOnly = false;
+  textarea.style.background = '';
+  textarea.focus();
+  document.getElementById('save-diary-btn').classList.remove('hidden');
+  document.getElementById('edit-diary-btn').classList.add('hidden');
+}
+
+async function saveDiary() {
+  const text = document.getElementById('diary-text').value;
+  try {
+    await api('POST', '/api/diary', { date: currentDate, text });
+    currentDiaryData = { text };
+    document.getElementById('delete-diary-btn').classList.remove('hidden');
+    showFeedback('diary-feedback','일기 저장됐어요 ✓','success');
+  } catch { showFeedback('diary-feedback','저장 실패','error'); }
+}
+
+async function deleteDiary() {
+  if (!confirm('일기를 삭제할까요?')) return;
+  await api('DELETE', `/api/diary/${currentDate}`);
+  currentDiaryData = null;
+  renderDiary();
+}
+
+/* ══════════════════════
+   운동 탭
+══════════════════════ */
+function renderExercise() {
+  const form     = document.getElementById('exercise-form');
+  const existing = document.getElementById('existing-exercise');
+  const prompt   = document.getElementById('exercise-login-prompt');
+
+  document.getElementById('exercise-date-label').textContent = formatLabel(currentDate);
+
+  if (!currentUser) {
+    prompt.classList.remove('hidden');
+    form.classList.add('hidden');
+    existing.classList.add('hidden');
+    return;
+  }
+  prompt.classList.add('hidden');
+
+  if (currentExerciseData) {
+    form.classList.add('hidden');
+    existing.classList.remove('hidden');
+    document.getElementById('ex-program-display').textContent =
+      currentExerciseData.program ? `🏷️ ${currentExerciseData.program}` : '프로그램 미입력';
+    document.getElementById('stat-calories').textContent = currentExerciseData.calories || '-';
+    document.getElementById('stat-maxhr').textContent    = currentExerciseData.maxHR    || '-';
+    document.getElementById('stat-avghr').textContent    = currentExerciseData.avgHR    || '-';
+  } else {
+    existing.classList.add('hidden');
+    form.classList.remove('hidden');
+    document.getElementById('ex-program').value  = '';
+    document.getElementById('ex-calories').value = '';
+    document.getElementById('ex-maxhr').value    = '';
+    document.getElementById('ex-avghr').value    = '';
+    document.getElementById('exercise-feedback').textContent = '';
+  }
+}
+
+async function saveExercise() {
+  const program  = document.getElementById('ex-program').value.trim();
+  const calories = document.getElementById('ex-calories').value;
+  const maxHR    = document.getElementById('ex-maxhr').value;
+  const avgHR    = document.getElementById('ex-avghr').value;
+  try {
+    await api('POST', '/api/exercise', { date: currentDate, program, calories, maxHR, avgHR });
+    currentExerciseData = {
+      program,
+      calories: parseInt(calories)||0,
+      maxHR:    parseInt(maxHR)||0,
+      avgHR:    parseInt(avgHR)||0,
+    };
+    renderExercise();
+    showFeedback('exercise-feedback','운동 기록 저장됐어요 ✓','success');
+  } catch { showFeedback('exercise-feedback','저장 실패','error'); }
+}
+
+function editExercise() {
+  const form     = document.getElementById('exercise-form');
+  const existing = document.getElementById('existing-exercise');
+  existing.classList.add('hidden');
+  form.classList.remove('hidden');
+  // 기존 값 폼에 채우기
+  if (currentExerciseData) {
+    document.getElementById('ex-program').value  = currentExerciseData.program  || '';
+    document.getElementById('ex-calories').value = currentExerciseData.calories || '';
+    document.getElementById('ex-maxhr').value    = currentExerciseData.maxHR    || '';
+    document.getElementById('ex-avghr').value    = currentExerciseData.avgHR    || '';
+  }
+}
+
+async function deleteExercise() {
+  if (!confirm('운동 기록을 삭제할까요?')) return;
+  await api('DELETE', `/api/exercise/${currentDate}`);
+  currentExerciseData = null;
+  renderExercise();
+}
+
+/* ══════════════════════
+   식단 탭
+══════════════════════ */
+function renderFoodTab() {
+  const food = currentFoodData || { breakfast:[],lunch:[],dinner:[],snack:[] };
+  let total  = 0;
+  MEALS.forEach(meal => {
+    const items = food[meal] || [];
+    const sum   = items.reduce((s,i)=>s+i.kcal, 0);
+    total += sum;
+    document.getElementById(`total-${meal}`).textContent = `${sum} kcal`;
+    document.getElementById(`sum-${meal}`).textContent   = `${sum} kcal`;
+    const list = document.getElementById(`list-${meal}`);
+    list.innerHTML = '';
+    items.forEach((item, idx) => {
+      const el = document.createElement('div');
+      el.className = 'food-item';
+      el.innerHTML = `
+        <span class="food-name">${escapeHtml(item.name)}</span>
+        <span class="food-kcal">${item.kcal} kcal</span>
+        <button class="food-del" data-meal="${meal}" data-idx="${idx}">✕</button>
+      `;
+      list.appendChild(el);
+    });
+  });
+  document.getElementById('total-kcal').textContent = total;
+}
+
+async function addFood(meal) {
+  if (!currentUser) return;
+  const card      = document.querySelector(`.meal-card[data-meal="${meal}"]`);
+  const nameInput = card.querySelector('.food-input');
+  const kcalInput = card.querySelector('.kcal-input');
+  const name = nameInput.value.trim();
+  const kcal = parseInt(kcalInput.value, 10);
+  if (!name) { nameInput.focus(); return; }
+  if (isNaN(kcal) || kcal < 0) { kcalInput.focus(); return; }
+  await api('POST', '/api/food', { date: currentDate, meal, name, kcal });
+  if (!currentFoodData) currentFoodData = { breakfast:[],lunch:[],dinner:[],snack:[] };
+  currentFoodData[meal].push({ name, kcal });
+  nameInput.value = ''; kcalInput.value = '';
+  nameInput.focus();
+  renderFoodTab();
+}
+
+async function deleteFood(meal, idx) {
+  await api('DELETE', `/api/food/${currentDate}/${meal}/${idx}`);
+  currentFoodData[meal].splice(idx, 1);
+  renderFoodTab();
+}
+
+/* ══════════════════════
+   캘린더
+══════════════════════ */
+async function renderCalendar() {
+  document.getElementById('cal-month-label').textContent = `${calYear}년 ${calMonth+1}월`;
+  let calData = {};
+  if (currentUser) {
+    try { calData = await fetch(`/api/calendar/${calYear}/${calMonth+1}`).then(r=>r.json()); }
+    catch { calData = {}; }
+  }
+  const grid     = document.getElementById('calendar-grid');
+  grid.innerHTML = '';
+  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+  const today       = todayStr();
+
+  for (let i = firstDay-1; i >= 0; i--) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-day other-month';
+    cell.innerHTML = `<span class="cal-day-num">${daysInPrev-i}</span>`;
+    grid.appendChild(cell);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const entry   = calData[dateStr];
+    const cell    = document.createElement('div');
+    const classes = ['cal-day'];
+    if (dateStr === today)       classes.push('is-today');
+    if (dateStr === currentDate) classes.push('is-selected');
+    if (entry)                   classes.push('has-entry');
+    cell.className    = classes.join(' ');
+    cell.dataset.date = dateStr;
+    cell.innerHTML = `
+      <span class="cal-day-num">${d}</span>
+      ${entry ? `<span class="cal-day-emoji">${entry.emoji}</span>` : ''}
+    `;
+    cell.addEventListener('click', () => setCurrentDate(dateStr));
+    grid.appendChild(cell);
+  }
+  const total     = firstDay + daysInMonth;
+  const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let d = 1; d <= remaining; d++) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-day other-month';
+    cell.innerHTML = `<span class="cal-day-num">${d}</span>`;
+    grid.appendChild(cell);
+  }
+}
+
+/* ══════════════════════
+   피드백
+══════════════════════ */
+function showFeedback(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className   = `save-feedback ${type}`;
+  setTimeout(() => { el.textContent = ''; el.className = 'save-feedback'; }, 2500);
+}
+
+/* ══════════════════════
+   초기화
+══════════════════════ */
+async function init() {
+  document.getElementById('today-label').textContent         = formatLabel(currentDate);
+  document.getElementById('exercise-date-label').textContent = formatLabel(currentDate);
+
+  // 탭 전환
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+    });
+  });
+
+  // 캘린더
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  document.getElementById('cal-prev').addEventListener('click', () => {
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar();
+  });
+  document.getElementById('cal-next').addEventListener('click', () => {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar();
+  });
+
+  // 감정 버튼
+  document.querySelectorAll('.emotion-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectEmotion(btn));
+  });
+  const slider = document.getElementById('intensity-slider');
+  slider.addEventListener('input', () => updateSliderUI(slider.value));
+  updateSliderUI(slider.value);
+  document.getElementById('save-mood-btn').addEventListener('click', saveMood);
+  document.getElementById('edit-mood-btn').addEventListener('click', editMood);
+  document.getElementById('delete-mood-btn').addEventListener('click', deleteMood);
+
+  // 일기
+  document.getElementById('save-diary-btn').addEventListener('click', saveDiary);
+  document.getElementById('edit-diary-btn').addEventListener('click', editDiary);
+  document.getElementById('delete-diary-btn').addEventListener('click', deleteDiary);
+
+  // 운동
+  document.getElementById('save-exercise-btn').addEventListener('click', saveExercise);
+  document.getElementById('edit-exercise-btn').addEventListener('click', editExercise);
+  document.getElementById('delete-exercise-btn').addEventListener('click', deleteExercise);
+
+  // 식단
+  document.querySelectorAll('.meal-card').forEach(card => {
+    const meal = card.dataset.meal;
+    card.querySelector('.add-btn').addEventListener('click', () => addFood(meal));
+    card.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') addFood(meal); });
+    });
+    card.querySelector('.food-list').addEventListener('click', e => {
+      const btn = e.target.closest('.food-del');
+      if (!btn) return;
+      deleteFood(btn.dataset.meal, Number(btn.dataset.idx));
+    });
+  });
+
+  await checkLogin();
+  await renderCalendar();
+  await loadDateData();
+}
+
+init();

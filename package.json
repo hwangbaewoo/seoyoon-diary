@@ -1,0 +1,19 @@
+{
+  "name": "nate-news-app",
+  "version": "1.0.0",
+  "description": "네이트 뉴스 웹 앱",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cheerio": "^1.0.0",
+    "node-fetch": "^2.7.0",
+    "iconv-lite": "^0.6.3"
+  }
+}

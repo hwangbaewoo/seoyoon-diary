@@ -18,6 +18,7 @@ let currentFoodData = null;
 let currentDiaryData    = null;
 let currentExerciseData = null;
 let currentPhotosData   = null;
+let pendingPhotos = { diary: [], exercise: [], food: [] }; // 업로드 대기 사진
 
 /* ── 날짜 유틸 ── */
 function todayStr() {
@@ -94,6 +95,9 @@ function setFormsEnabled(enabled) {
 ══════════════════════ */
 async function setCurrentDate(dateStr) {
   currentDate = dateStr;
+  // 날짜 바꾸면 대기 사진 초기화
+  pendingPhotos = { diary: [], exercise: [], food: [] };
+  ['diary','exercise','food'].forEach(t => renderPendingPhotos(t));
   document.getElementById('today-label').textContent      = formatLabel(dateStr);
   document.getElementById('exercise-date-label').textContent = formatLabel(dateStr);
   document.querySelectorAll('.cal-day').forEach(el => {
@@ -397,7 +401,8 @@ function renderFoodTab() {
       el.innerHTML = `
         <span class="food-name">${escapeHtml(item.name)}</span>
         <span class="food-kcal">${item.kcal} kcal</span>
-        <button class="food-del" data-meal="${meal}" data-idx="${idx}">✕</button>
+        <button class="food-edit" data-meal="${meal}" data-idx="${idx}" title="수정">✏️</button>
+        <button class="food-del"  data-meal="${meal}" data-idx="${idx}" title="삭제">✕</button>
       `;
       list.appendChild(el);
     });
@@ -426,6 +431,39 @@ async function deleteFood(meal, idx) {
   await api('DELETE', `/api/food/${currentDate}/${meal}/${idx}`);
   currentFoodData[meal].splice(idx, 1);
   renderFoodTab();
+}
+
+function editFoodItem(meal, idx) {
+  const list   = document.getElementById(`list-${meal}`);
+  const item   = currentFoodData?.[meal]?.[idx];
+  const itemEl = list.children[idx];
+  if (!item || !itemEl) return;
+
+  itemEl.classList.add('food-item-editing');
+  itemEl.innerHTML = `
+    <input class="food-edit-name" value="${escapeHtml(item.name)}" placeholder="음식 이름" />
+    <input class="food-edit-kcal" type="number" value="${item.kcal}" placeholder="kcal" min="0" />
+    <button class="food-save-edit" title="저장">✓</button>
+    <button class="food-cancel-edit" title="취소">✕</button>
+  `;
+  const nameInput = itemEl.querySelector('.food-edit-name');
+  const kcalInput = itemEl.querySelector('.food-edit-kcal');
+  nameInput.focus();
+
+  async function doSave() {
+    const nameVal = nameInput.value.trim();
+    const kcalVal = parseInt(kcalInput.value, 10);
+    if (!nameVal || isNaN(kcalVal) || kcalVal < 0) return;
+    try {
+      await api('PATCH', `/api/food/${currentDate}/${meal}/${idx}`, { name: nameVal, kcal: kcalVal });
+      currentFoodData[meal][idx] = { name: nameVal, kcal: kcalVal };
+      renderFoodTab();
+    } catch { alert('저장 실패'); }
+  }
+
+  itemEl.querySelector('.food-save-edit').addEventListener('click', doSave);
+  itemEl.querySelector('.food-cancel-edit').addEventListener('click', () => renderFoodTab());
+  kcalInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSave(); });
 }
 
 /* ══════════════════════
@@ -557,27 +595,85 @@ async function uploadPhoto(file, type) {
   renderFeaturedPreview();
 }
 
+/* 대기 사진 미리보기 렌더 */
+function renderPendingPhotos(type) {
+  const area = document.querySelector(`.photo-upload-area[data-type="${type}"]`);
+  if (!area) return;
+
+  let pendingArea = area.parentElement.querySelector(`.pending-area[data-type="${type}"]`);
+  if (!pendingArea) {
+    pendingArea = document.createElement('div');
+    pendingArea.className = 'pending-area';
+    pendingArea.dataset.type = type;
+    area.insertAdjacentElement('afterend', pendingArea);
+  }
+
+  const files = pendingPhotos[type] || [];
+  if (!files.length) { pendingArea.innerHTML = ''; return; }
+
+  pendingArea.innerHTML = `
+    <p class="pending-label">📋 저장 대기 중 (${files.length}장) — 아래 저장 버튼을 눌러주세요</p>
+    <div class="pending-grid">
+      ${files.map((item, i) => `
+        <div class="pending-item">
+          <img src="${item.preview}" alt="미리보기" />
+          <button class="pending-del-btn" data-idx="${i}">✕</button>
+        </div>
+      `).join('')}
+    </div>
+    <button class="save-pending-btn" data-type="${type}">💾 저장 (${files.length}장)</button>
+  `;
+
+  pendingArea.querySelectorAll('.pending-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.idx);
+      pendingPhotos[type].splice(i, 1);
+      renderPendingPhotos(type);
+    });
+  });
+
+  pendingArea.querySelector('.save-pending-btn').addEventListener('click', async (e) => {
+    const saveBtn = e.currentTarget;
+    saveBtn.disabled = true;
+    saveBtn.textContent = '업로드 중...';
+    const toUpload = [...pendingPhotos[type]];
+    pendingPhotos[type] = [];
+    for (const item of toUpload) {
+      try { await uploadPhoto(item.file, type); } catch { /* 개별 실패 무시 */ }
+    }
+    renderPendingPhotos(type);
+  });
+}
+
 function initPhotoUploads() {
   document.querySelectorAll('.photo-upload-area').forEach(area => {
     const type  = area.dataset.type;
     const input = area.querySelector('.photo-file-input');
 
+    function stageFiles(files) {
+      if (!currentUser) return;
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        if (!pendingPhotos[type]) pendingPhotos[type] = [];
+        pendingPhotos[type].push({ file, preview: URL.createObjectURL(file) });
+      }
+      renderPendingPhotos(type);
+    }
+
     // 파일 선택
-    input?.addEventListener('change', async () => {
-      for (const file of input.files) await uploadPhoto(file, type);
+    input?.addEventListener('change', () => {
+      stageFiles(Array.from(input.files));
       input.value = '';
     });
 
     // 드래그 앤 드롭
     area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
     area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
-    area.addEventListener('drop', async e => {
+    area.addEventListener('drop', e => {
       e.preventDefault();
       area.classList.remove('drag-over');
       if (!currentUser) return;
-      for (const file of e.dataTransfer.files) {
-        if (file.type.startsWith('image/')) await uploadPhoto(file, type);
-      }
+      stageFiles(Array.from(e.dataTransfer.files));
     });
   });
 }
@@ -648,9 +744,10 @@ async function init() {
       input.addEventListener('keydown', e => { if (e.key === 'Enter') addFood(meal); });
     });
     card.querySelector('.food-list').addEventListener('click', e => {
-      const btn = e.target.closest('.food-del');
-      if (!btn) return;
-      deleteFood(btn.dataset.meal, Number(btn.dataset.idx));
+      const delBtn = e.target.closest('.food-del');
+      if (delBtn) { deleteFood(delBtn.dataset.meal, Number(delBtn.dataset.idx)); return; }
+      const editBtn = e.target.closest('.food-edit');
+      if (editBtn) { editFoodItem(editBtn.dataset.meal, Number(editBtn.dataset.idx)); }
     });
   });
 

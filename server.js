@@ -277,6 +277,22 @@ app.post('/api/food', requireLogin, (req, res) => {
   saveUser(req.user.id, data);
   res.json({ ok: true, idx: data.food[date][meal].length - 1 });
 });
+/* ── API: 음식 수정 ── */
+app.patch('/api/food/:date/:meal/:idx', requireLogin, (req, res) => {
+  const { date, meal, idx } = req.params;
+  const { name, kcal } = req.body;
+  if (!validDate(date) || !MEALS.includes(meal)) return res.status(400).json({ error: 'invalid' });
+  const idxVal  = parseInt(idx, 10);
+  const kcalVal = parseInt(kcal, 10);
+  if (isNaN(idxVal) || !name?.trim() || isNaN(kcalVal) || kcalVal < 0)
+    return res.status(400).json({ error: 'invalid body' });
+  const data = getUser(req.user.id);
+  if (!data.food[date]?.[meal]?.[idxVal]) return res.status(404).json({ error: 'not found' });
+  data.food[date][meal][idxVal] = { name: name.trim(), kcal: kcalVal };
+  saveUser(req.user.id, data);
+  res.json({ ok: true });
+});
+
 app.delete('/api/food/:date/:meal/:idx', requireLogin, (req, res) => {
   const { date, meal, idx } = req.params;
   if (!validDate(date) || !MEALS.includes(meal)) return res.status(400).json({ error: 'invalid' });

@@ -25,7 +25,12 @@ header {
   gap: 10px;
 }
 .header-icon { font-size: 1.4rem; }
-header h1 { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+header h1 { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.5px; display: flex; align-items: center; gap: 7px; }
+.app-version {
+  font-size: 0.65rem; font-weight: 700; color: #bae6fd;
+  background: rgba(255,255,255,0.18); border-radius: 8px;
+  padding: 2px 7px; letter-spacing: 0.5px; vertical-align: middle;
+}
 
 .user-area { margin-left: auto; display: flex; align-items: center; }
 .login-btn {

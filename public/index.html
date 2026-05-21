@@ -34,6 +34,7 @@
         <button class="cal-nav" id="cal-prev">&#8249;</button>
         <span class="cal-month-label" id="cal-month-label"></span>
         <button class="cal-nav" id="cal-next">&#8250;</button>
+        <button class="diary-dates-btn" id="diary-dates-btn">📋 기록 날짜</button>
       </div>
       <div class="calendar-weekdays">
         <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
@@ -338,6 +339,19 @@
     </section>
 
   </main>
+
+  <!-- 내 기록 날짜 팝업 -->
+  <div class="sh-modal hidden" id="diary-dates-modal">
+    <div class="sh-modal-overlay" id="diary-dates-modal-overlay"></div>
+    <div class="sh-modal-inner">
+      <div class="sh-modal-header">
+        <span>📅 내 기록 날짜</span>
+        <button class="sh-modal-close" id="diary-dates-modal-close">✕</button>
+      </div>
+      <p class="sh-modal-desc">날짜를 클릭하면 해당 날짜로 이동합니다</p>
+      <div class="sh-date-list" id="diary-dates-list"></div>
+    </div>
+  </div>
 
   <!-- 삼성헬스 날짜 목록 팝업 -->
   <div class="sh-modal hidden" id="sh-modal">

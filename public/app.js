@@ -754,6 +754,45 @@ async function init() {
   // 운동
   document.getElementById('save-exercise-btn').addEventListener('click', saveExercise);
 
+  // 내 기록 날짜 보기
+  document.getElementById('diary-dates-btn').addEventListener('click', async () => {
+    if (!currentUser) { alert('로그인이 필요해요'); return; }
+    const btn = document.getElementById('diary-dates-btn');
+    btn.textContent = '⏳ 불러오는 중...';
+    try {
+      const data = await api('GET', '/api/my-dates');
+      const list = document.getElementById('diary-dates-list');
+      list.innerHTML = '';
+      if (!data.dates || data.dates.length === 0) {
+        list.innerHTML = '<div class="sh-empty">아직 기록이 없어요</div>';
+      } else {
+        [...data.dates].reverse().forEach(d => {
+          const [y, m, day] = d.split('-');
+          const dt = new Date(Number(y), Number(m)-1, Number(day));
+          const days = ['일','월','화','수','목','금','토'];
+          const item = document.createElement('button');
+          item.className = 'sh-date-item';
+          item.textContent = `${y}년 ${Number(m)}월 ${Number(day)}일 (${days[dt.getDay()]})`;
+          item.addEventListener('click', () => {
+            calYear = Number(y); calMonth = Number(m) - 1;
+            setCurrentDate(d);
+            renderCalendar();
+            document.getElementById('diary-dates-modal').classList.add('hidden');
+          });
+          list.appendChild(item);
+        });
+      }
+      document.getElementById('diary-dates-modal').classList.remove('hidden');
+    } catch { alert('기록을 불러오는 중 오류가 발생했어요'); }
+    btn.textContent = '📋 기록 날짜';
+  });
+  document.getElementById('diary-dates-modal-close').addEventListener('click', () => {
+    document.getElementById('diary-dates-modal').classList.add('hidden');
+  });
+  document.getElementById('diary-dates-modal-overlay').addEventListener('click', () => {
+    document.getElementById('diary-dates-modal').classList.add('hidden');
+  });
+
   // 삼성헬스 날짜 목록 보기
   document.getElementById('samsung-health-dates-btn').addEventListener('click', () => {
     document.getElementById('samsung-health-dates-file').click();

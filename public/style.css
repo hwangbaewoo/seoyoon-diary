@@ -67,7 +67,10 @@ main {
 
 /* ── Calendar ── */
 .calendar-card { padding: 16px 18px 14px; }
-.calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.calendar-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.cal-month-label { flex: 1; text-align: center; }
+.diary-dates-btn { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; border: 1px solid #0284c7; background: #fff; color: #0284c7; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.diary-dates-btn:hover { background: #e0f2fe; }
 .cal-month-label { font-size: 1rem; font-weight: 700; color: #0c4a6e; }
 .cal-nav {
   background: none; border: none; font-size: 1.6rem; color: #0284c7;

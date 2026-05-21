@@ -372,6 +372,16 @@ app.post('/api/import/samsung-health', requireLogin, uploadZip.single('file'), a
   }
 });
 
+/* ── API: 내 기록 날짜 목록 ── */
+app.get('/api/my-dates', requireLogin, async (req, res) => {
+  const data = await getUser(req.user.id);
+  const dateSet = new Set();
+  [data.mood, data.food, data.diary, data.exercise, data.photos].forEach(cat => {
+    if (cat) Object.keys(cat).forEach(d => { if (/^\d{4}-\d{2}-\d{2}$/.test(d)) dateSet.add(d); });
+  });
+  res.json({ dates: [...dateSet].sort() });
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

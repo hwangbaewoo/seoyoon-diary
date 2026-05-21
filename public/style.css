@@ -668,6 +668,37 @@ main {
   .user-name { display: none; }
 }
 
+/* ── 전체 저장 플로팅 버튼 ── */
+.save-all-wrap {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+}
+.save-all-wrap.hidden { display: none; }
+.save-all-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 28px;
+  background: #0284c7;
+  color: #fff;
+  font-size: 1rem; font-weight: 700;
+  border: none; border-radius: 32px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(2,132,199,0.5);
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.save-all-btn:hover { background: #0369a1; transform: translateY(-2px); }
+.save-all-btn:disabled { background: #7dd3fc; cursor: default; transform: none; }
+.save-all-icon { font-size: 1.1rem; }
+.save-all-badge {
+  background: #fff; color: #0284c7;
+  font-size: 0.8rem; font-weight: 800;
+  padding: 2px 8px; border-radius: 20px;
+  min-width: 22px; text-align: center;
+}
+
 /* ── 삼성헬스 날짜 팝업 ── */
 .sh-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; }
 .sh-modal.hidden { display: none; }

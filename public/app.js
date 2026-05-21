@@ -150,6 +150,7 @@ async function setCurrentDate(dateStr) {
   // 날짜 바꾸면 대기 사진 초기화
   pendingPhotos = { diary: [], exercise: [], food: [] };
   ['diary','exercise','food'].forEach(t => renderPendingPhotos(t));
+  updateSaveAllBtn();
   document.getElementById('today-label').textContent      = formatLabel(dateStr);
   document.getElementById('exercise-date-label').textContent = formatLabel(dateStr);
   document.querySelectorAll('.cal-day').forEach(el => {
@@ -660,6 +661,38 @@ async function uploadPhoto(file, type) {
   renderFeaturedPreview();
 }
 
+/* 전체 저장 버튼 카운트 업데이트 */
+function updateSaveAllBtn() {
+  const total = Object.values(pendingPhotos).reduce((s, arr) => s + arr.length, 0);
+  const wrap  = document.getElementById('save-all-wrap');
+  document.getElementById('save-all-count').textContent = total;
+  wrap.classList.toggle('hidden', total === 0);
+}
+
+/* 전체 저장 */
+async function saveAllPending() {
+  const btn = document.getElementById('save-all-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="save-all-icon">⏳</span> 저장 중...';
+
+  for (const type of ['diary', 'exercise', 'food']) {
+    const toUpload = [...(pendingPhotos[type] || [])];
+    if (!toUpload.length) continue;
+    pendingPhotos[type] = [];
+    renderPendingPhotos(type);
+    for (const item of toUpload) {
+      try { await uploadPhoto(item.file, type); } catch { /* 개별 실패 무시 */ }
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span class="save-all-icon">✅</span> 저장 완료!';
+  setTimeout(() => {
+    btn.innerHTML = '<span class="save-all-icon">💾</span> 전체 저장 <span class="save-all-badge" id="save-all-count">0</span>';
+    updateSaveAllBtn();
+  }, 2000);
+}
+
 /* 대기 사진 미리보기 렌더 */
 function renderPendingPhotos(type) {
   const area = document.querySelector(`.photo-upload-area[data-type="${type}"]`);
@@ -696,6 +729,7 @@ function renderPendingPhotos(type) {
       const i = Number(btn.dataset.idx);
       pendingPhotos[type].splice(i, 1);
       renderPendingPhotos(type);
+      updateSaveAllBtn();
     });
   });
 
@@ -709,6 +743,7 @@ function renderPendingPhotos(type) {
       try { await uploadPhoto(item.file, type); } catch { /* 개별 실패 무시 */ }
     }
     renderPendingPhotos(type);
+    updateSaveAllBtn();
   });
 }
 
@@ -727,6 +762,7 @@ function initPhotoUploads() {
         pendingPhotos[type].push({ file, preview: URL.createObjectURL(file), mediaType: isVideo ? 'video' : 'image' });
       }
       renderPendingPhotos(type);
+      updateSaveAllBtn();
     }
 
     // 파일 선택
@@ -1052,6 +1088,7 @@ async function init() {
   });
 
   initPhotoUploads();
+  document.getElementById('save-all-btn').addEventListener('click', saveAllPending);
 
   // 라이트박스 닫기
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);

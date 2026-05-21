@@ -29,9 +29,10 @@ async function saveUser(googleId, userData) {
   if (!userData.diary)    userData.diary    = {};
   if (!userData.exercise) userData.exercise = {};
   if (!userData.photos)   userData.photos   = {};
-  await supabase
+  const { error } = await supabase
     .from('users')
     .upsert({ google_id: googleId, data: userData });
+  if (error) console.log('saveUser 오류:', JSON.stringify(error));
 }
 
 /* ── 업로드 설정 (메모리 → Supabase Storage) ── */
@@ -184,6 +185,7 @@ app.post('/api/photos/:date/:type', requireLogin, (req, res, next) => {
   data.photos[date].items.push({ url: publicUrl, type, mediaType, uploadedAt: new Date().toISOString() });
   if (!data.photos[date].featured) data.photos[date].featured = publicUrl;
   await saveUser(req.user.id, data);
+  console.log(`저장 완료: ${date} items 총 ${data.photos[date].items.length}개`);
 
   res.json({ ok: true, url: publicUrl, photos: data.photos[date] });
 });
@@ -202,22 +204,30 @@ app.post('/api/photos/:date/featured', requireLogin, async (req, res) => {
 
 /* ── API: 사진 삭제 ── */
 app.delete('/api/photos/:date', requireLogin, async (req, res) => {
-  const { date } = req.params;
-  const { url } = req.body;
-  if (!validDate(date)) return res.status(400).json({ error: 'invalid date' });
-  const data = await getUser(req.user.id);
-  if (!data.photos[date]) return res.status(404).json({ error: 'not found' });
+  try {
+    const { date } = req.params;
+    const { url } = req.body;
+    console.log('삭제 요청:', date, url);
+    if (!validDate(date)) return res.status(400).json({ error: 'invalid date' });
+    const data = await getUser(req.user.id);
+    if (!data.photos[date]) return res.status(404).json({ error: 'not found' });
 
-  const prefix = `${process.env.SUPABASE_URL}/storage/v1/object/public/diary-photos/`;
-  const storagePath = url.replace(prefix, '');
-  await supabase.storage.from('diary-photos').remove([storagePath]);
+    const prefix = `${process.env.SUPABASE_URL}/storage/v1/object/public/diary-photos/`;
+    const storagePath = url.replace(prefix, '');
+    const { error: storageErr } = await supabase.storage.from('diary-photos').remove([storagePath]);
+    if (storageErr) console.log('Storage 삭제 오류:', JSON.stringify(storageErr));
 
-  data.photos[date].items = data.photos[date].items.filter(i => i.url !== url);
-  if (data.photos[date].featured === url) {
-    data.photos[date].featured = data.photos[date].items[0]?.url || null;
+    data.photos[date].items = (data.photos[date].items || []).filter(i => i.url !== url);
+    if (data.photos[date].featured === url) {
+      data.photos[date].featured = data.photos[date].items[0]?.url || null;
+    }
+    await saveUser(req.user.id, data);
+    console.log('삭제 완료, 남은 items:', data.photos[date].items.length);
+    res.json({ ok: true, photos: data.photos[date] });
+  } catch (e) {
+    console.log('삭제 핸들러 오류:', e.message);
+    res.status(500).json({ error: e.message });
   }
-  await saveUser(req.user.id, data);
-  res.json({ ok: true, photos: data.photos[date] });
 });
 
 /* ── API: 감정 ── */

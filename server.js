@@ -311,6 +311,32 @@ app.delete('/api/food/:date/:meal/:idx', requireLogin, async (req, res) => {
   res.json({ ok: true });
 });
 
+/* ── API: 삼성헬스 날짜 목록 조회 ── */
+app.post('/api/import/samsung-health/dates', requireLogin, uploadZip.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '파일이 없어요' });
+  try {
+    const zip = new AdmZip(req.file.buffer);
+    const dates = new Set();
+    zip.getEntries().forEach(entry => {
+      if (!entry.entryName.includes('exercise.live_data')) return;
+      try {
+        const rows = JSON.parse(zip.readAsText(entry));
+        rows.forEach(item => {
+          if (item.heart_rate && item.start_time) {
+            const kst = new Date(item.start_time + 9 * 60 * 60 * 1000);
+            const d = kst.toISOString().slice(0, 10);
+            dates.add(d);
+          }
+        });
+      } catch (_) {}
+    });
+    res.json({ dates: [...dates].sort() });
+  } catch (e) {
+    console.error('삼성헬스 날짜 파싱 오류:', e.message);
+    res.status(500).json({ error: '파일 처리 중 오류가 발생했어요' });
+  }
+});
+
 /* ── API: 삼성헬스 ZIP 가져오기 ── */
 app.post('/api/import/samsung-health', requireLogin, uploadZip.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없어요' });
@@ -319,15 +345,11 @@ app.post('/api/import/samsung-health', requireLogin, uploadZip.single('file'), a
 
   try {
     const zip = new AdmZip(req.file.buffer);
-    const entries = zip.getEntries();
-
-    // 선택한 날짜의 KST 시간 범위 (밀리초)
     const startOfDay = new Date(date + 'T00:00:00+09:00').getTime();
     const endOfDay   = new Date(date + 'T23:59:59+09:00').getTime();
-
     const hrValues = [];
 
-    entries.forEach(entry => {
+    zip.getEntries().forEach(entry => {
       if (!entry.entryName.includes('exercise.live_data')) return;
       try {
         const rows = JSON.parse(zip.readAsText(entry));
@@ -339,13 +361,10 @@ app.post('/api/import/samsung-health', requireLogin, uploadZip.single('file'), a
       } catch (_) {}
     });
 
-    if (hrValues.length === 0) {
-      return res.json({ found: false, message: '해당 날짜의 운동 기록이 없어요' });
-    }
+    if (hrValues.length === 0) return res.json({ found: false, message: '해당 날짜의 운동 기록이 없어요' });
 
     const maxHR = Math.round(Math.max(...hrValues));
     const avgHR = Math.round(hrValues.reduce((a, b) => a + b, 0) / hrValues.length);
-
     res.json({ found: true, maxHR, avgHR });
   } catch (e) {
     console.error('삼성헬스 파싱 오류:', e.message);

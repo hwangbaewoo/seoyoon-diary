@@ -754,6 +754,61 @@ async function init() {
   // 운동
   document.getElementById('save-exercise-btn').addEventListener('click', saveExercise);
 
+  // 삼성헬스 날짜 목록 보기
+  document.getElementById('samsung-health-dates-btn').addEventListener('click', () => {
+    document.getElementById('samsung-health-dates-file').click();
+  });
+  document.getElementById('samsung-health-dates-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const btn = document.getElementById('samsung-health-dates-btn');
+    btn.textContent = '⏳ 분석 중...';
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/import/samsung-health/dates', { method: 'POST', body: formData });
+      const data = await res.json();
+      const list = document.getElementById('sh-date-list');
+      list.innerHTML = '';
+      if (!data.dates || data.dates.length === 0) {
+        list.innerHTML = '<div class="sh-empty">운동 기록이 없어요</div>';
+      } else {
+        data.dates.reverse().forEach(d => {
+          const [y, m, day] = d.split('-');
+          const dt = new Date(Number(y), Number(m)-1, Number(day));
+          const days = ['일','월','화','수','목','금','토'];
+          const btn = document.createElement('button');
+          btn.className = 'sh-date-item';
+          btn.textContent = `${y}년 ${Number(m)}월 ${Number(day)}일 (${days[dt.getDay()]})`;
+          btn.addEventListener('click', () => {
+            currentDate = d;
+            calYear = Number(y);
+            calMonth = Number(m) - 1;
+            renderCalendar();
+            loadDayData(d);
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+            document.querySelector('[data-tab="exercise"]').classList.add('active');
+            document.getElementById('tab-exercise').classList.remove('hidden');
+            document.getElementById('sh-modal').classList.add('hidden');
+          });
+          list.appendChild(btn);
+        });
+      }
+      document.getElementById('sh-modal').classList.remove('hidden');
+    } catch {
+      alert('파일 처리 중 오류가 발생했어요');
+    }
+    btn.textContent = '📋 운동 날짜 보기';
+    e.target.value = '';
+  });
+  document.getElementById('sh-modal-close').addEventListener('click', () => {
+    document.getElementById('sh-modal').classList.add('hidden');
+  });
+  document.getElementById('sh-modal-overlay').addEventListener('click', () => {
+    document.getElementById('sh-modal').classList.add('hidden');
+  });
+
   // 삼성헬스 가져오기
   document.getElementById('samsung-health-btn').addEventListener('click', () => {
     document.getElementById('samsung-health-file').click();

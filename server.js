@@ -146,9 +146,19 @@ app.post('/api/photos/:date/:type', requireLogin, (req, res, next) => {
   if (!validDate(date) || !PHOTO_TYPES.includes(type))
     return res.status(400).json({ error: 'invalid' });
   next();
-}, upload.single('photo'), async (req, res) => {
+}, (req, res, next) => {
+  upload.single('photo')(req, res, (err) => {
+    if (err) {
+      console.log('multer 오류:', err.message);
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없어요' });
   const { date, type } = req.params;
+
+  console.log('업로드 시도:', req.file.originalname, req.file.mimetype, req.file.size);
 
   const ext = path.extname(req.file.originalname).toLowerCase();
   const filename = `${type}_${Date.now()}${ext}`;
@@ -158,7 +168,10 @@ app.post('/api/photos/:date/:type', requireLogin, (req, res, next) => {
     .from('diary-photos')
     .upload(storagePath, req.file.buffer, { contentType: req.file.mimetype });
 
-  if (uploadError) return res.status(500).json({ error: '사진 업로드 실패' });
+  if (uploadError) {
+    console.log('Supabase 업로드 오류:', JSON.stringify(uploadError));
+    return res.status(500).json({ error: '사진 업로드 실패', detail: uploadError.message });
+  }
 
   const { data: urlData } = supabase.storage
     .from('diary-photos')

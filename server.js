@@ -6,6 +6,7 @@ const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const multer   = require('multer');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const AdmZip = require('adm-zip');
 
 const app = express();
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -40,6 +41,16 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('이미지 파일만 업로드할 수 있어요'));
+  },
+});
+
+/* ── ZIP 업로드 설정 (삼성헬스 전용) ── */
+const uploadZip = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/zip' || file.originalname.endsWith('.zip')) cb(null, true);
+    else cb(new Error('ZIP 파일만 업로드할 수 있어요'));
   },
 });
 
@@ -298,6 +309,48 @@ app.delete('/api/food/:date/:meal/:idx', requireLogin, async (req, res) => {
   data.food[date][meal].splice(idxVal, 1);
   await saveUser(req.user.id, data);
   res.json({ ok: true });
+});
+
+/* ── API: 삼성헬스 ZIP 가져오기 ── */
+app.post('/api/import/samsung-health', requireLogin, uploadZip.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '파일이 없어요' });
+  const { date } = req.query;
+  if (!validDate(date)) return res.status(400).json({ error: 'invalid date' });
+
+  try {
+    const zip = new AdmZip(req.file.buffer);
+    const entries = zip.getEntries();
+
+    // 선택한 날짜의 KST 시간 범위 (밀리초)
+    const startOfDay = new Date(date + 'T00:00:00+09:00').getTime();
+    const endOfDay   = new Date(date + 'T23:59:59+09:00').getTime();
+
+    const hrValues = [];
+
+    entries.forEach(entry => {
+      if (!entry.entryName.includes('exercise.live_data')) return;
+      try {
+        const rows = JSON.parse(zip.readAsText(entry));
+        rows.forEach(item => {
+          if (item.heart_rate && item.start_time >= startOfDay && item.start_time <= endOfDay) {
+            hrValues.push(item.heart_rate);
+          }
+        });
+      } catch (_) {}
+    });
+
+    if (hrValues.length === 0) {
+      return res.json({ found: false, message: '해당 날짜의 운동 기록이 없어요' });
+    }
+
+    const maxHR = Math.round(Math.max(...hrValues));
+    const avgHR = Math.round(hrValues.reduce((a, b) => a + b, 0) / hrValues.length);
+
+    res.json({ found: true, maxHR, avgHR });
+  } catch (e) {
+    console.error('삼성헬스 파싱 오류:', e.message);
+    res.status(500).json({ error: '파일 처리 중 오류가 발생했어요' });
+  }
 });
 
 app.get('*', (req, res) => {

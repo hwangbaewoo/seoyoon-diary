@@ -260,8 +260,11 @@ main {
 
 /* Watch section */
 .watch-section { background: #f0f9ff; border-radius: 14px; padding: 16px; border: 1px solid #bae6fd; }
-.watch-title { font-size: 0.9rem; font-weight: 700; color: #0369a1; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+.watch-title { font-size: 0.9rem; font-weight: 700; color: #0369a1; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .watch-icon { font-size: 1.1rem; }
+.import-btn { margin-left: auto; font-size: 0.78rem; padding: 4px 10px; border-radius: 20px; border: 1px solid #0284c7; background: #fff; color: #0284c7; cursor: pointer; font-weight: 600; }
+.import-btn:hover { background: #e0f2fe; }
+.import-feedback { font-size: 0.82rem; margin-bottom: 10px; min-height: 18px; }
 .watch-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
 .watch-field { display: flex; flex-direction: column; gap: 6px; }
 .watch-label { font-size: 0.75rem; font-weight: 600; color: #0369a1; }

@@ -753,6 +753,39 @@ async function init() {
 
   // 운동
   document.getElementById('save-exercise-btn').addEventListener('click', saveExercise);
+
+  // 삼성헬스 가져오기
+  document.getElementById('samsung-health-btn').addEventListener('click', () => {
+    document.getElementById('samsung-health-file').click();
+  });
+  document.getElementById('samsung-health-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const feedback = document.getElementById('import-feedback');
+    feedback.textContent = '⏳ 불러오는 중...';
+    feedback.style.color = '#888';
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch(`/api/import/samsung-health?date=${currentDate}`, {
+        method: 'POST', body: formData,
+      });
+      const data = await res.json();
+      if (data.found) {
+        document.getElementById('ex-maxhr').value = data.maxHR;
+        document.getElementById('ex-avghr').value = data.avgHR;
+        feedback.textContent = `✅ 최대 ${data.maxHR}bpm · 평균 ${data.avgHR}bpm 자동 입력됐어요`;
+        feedback.style.color = '#16a34a';
+      } else {
+        feedback.textContent = '❌ ' + data.message;
+        feedback.style.color = '#dc2626';
+      }
+    } catch {
+      feedback.textContent = '❌ 파일 처리 중 오류가 발생했어요';
+      feedback.style.color = '#dc2626';
+    }
+    e.target.value = '';
+  });
   document.getElementById('edit-exercise-btn').addEventListener('click', editExercise);
   document.getElementById('delete-exercise-btn').addEventListener('click', deleteExercise);
 

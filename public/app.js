@@ -2,6 +2,58 @@
    내 일기 — 통합 앱 v2 (감정·운동·식단·일기)
    ══════════════════════════════════════════ */
 
+/* ── F45 프로그램 목록 ── */
+const F45_PROGRAMS = [
+  // Cardio
+  { name: '22',           type: 'Cardio' },
+  { name: 'Abacus',       type: 'Cardio' },
+  { name: 'Athletica',    type: 'Cardio' },
+  { name: 'Bears',        type: 'Cardio' },
+  { name: 'Brixton',      type: 'Cardio' },
+  { name: 'Brooklyn',     type: 'Cardio' },
+  { name: 'Docklands',    type: 'Cardio' },
+  { name: 'Firestorm',    type: 'Cardio' },
+  { name: 'Foxtrot',      type: 'Cardio' },
+  { name: 'Gravity',      type: 'Cardio' },
+  { name: 'MVP',          type: 'Cardio' },
+  { name: 'Pipeline',     type: 'Cardio' },
+  { name: 'Quarterbacks', type: 'Cardio' },
+  { name: 'Templars',     type: 'Cardio' },
+  { name: 'Triple Double',type: 'Cardio' },
+  { name: 'Varsity',      type: 'Cardio' },
+  // Resistance
+  { name: 'All-Star',     type: 'Resistance' },
+  { name: 'Angry Bird',   type: 'Resistance' },
+  { name: 'Hammer',       type: 'Resistance' },
+  { name: 'Mkatz',        type: 'Resistance' },
+  { name: 'Moon Hopper',  type: 'Resistance' },
+  { name: 'Panthers',     type: 'Resistance' },
+  { name: 'Pegasus',      type: 'Resistance' },
+  { name: 'Red Diamond',  type: 'Resistance' },
+  { name: 'Renegade',     type: 'Resistance' },
+  { name: 'Romans',       type: 'Resistance' },
+  { name: 'Tokyo Disco',  type: 'Resistance' },
+  // Hybrid
+  { name: '3-Peat',       type: 'Hybrid' },
+  { name: 'Apex',         type: 'Hybrid' },
+  { name: 'Checkmate',    type: 'Hybrid' },
+  { name: 'Hollywood',    type: 'Hybrid' },
+  { name: 'Loyals',       type: 'Hybrid' },
+  { name: 'Miami Nights', type: 'Hybrid' },
+  { name: 'Mont Blanc',   type: 'Hybrid' },
+  { name: 'Seoul Rush',   type: 'Hybrid' },
+  { name: 'SoCal',        type: 'Hybrid' },
+  { name: 'T10',          type: 'Hybrid' },
+  { name: 'The Joker',    type: 'Hybrid' },
+  { name: 'The Nines',    type: 'Hybrid' },
+  { name: 'West Hollywood',type:'Hybrid' },
+  { name: 'Wingman',      type: 'Hybrid' },
+  // Recovery
+  { name: 'Calypso Kings',type: 'Recovery' },
+  { name: 'Mondrian 30',  type: 'Recovery' },
+  { name: 'Reset',        type: 'Recovery' },
+];
+
 const MEALS   = ['breakfast','lunch','dinner','snack'];
 const MEAL_KO = { breakfast:'아침', lunch:'점심', dinner:'저녁', snack:'간식' };
 const EMOTION_KO = {
@@ -709,6 +761,77 @@ function showFeedback(id, msg, type) {
 }
 
 /* ══════════════════════
+   F45 자동완성
+══════════════════════ */
+function initF45Autocomplete() {
+  const input    = document.getElementById('ex-program');
+  const dropdown = document.getElementById('f45-dropdown');
+  const TYPE_COLOR = {
+    Cardio:     { bg: '#fff7ed', border: '#fb923c', text: '#ea580c' },
+    Resistance: { bg: '#eff6ff', border: '#60a5fa', text: '#1d4ed8' },
+    Hybrid:     { bg: '#faf5ff', border: '#c084fc', text: '#7e22ce' },
+    Recovery:   { bg: '#f0fdf4', border: '#4ade80', text: '#15803d' },
+  };
+
+  function showDropdown(query) {
+    const q = query.trim().toLowerCase();
+    const matches = q
+      ? F45_PROGRAMS.filter(p => p.name.toLowerCase().includes(q))
+      : F45_PROGRAMS;
+
+    if (!matches.length) { dropdown.classList.add('hidden'); return; }
+
+    dropdown.innerHTML = '';
+    matches.forEach(prog => {
+      const c = TYPE_COLOR[prog.type] || {};
+      const item = document.createElement('div');
+      item.className = 'f45-item';
+      item.innerHTML = `
+        <span class="f45-item-name">${prog.name}</span>
+        <span class="f45-badge" style="background:${c.bg};border-color:${c.border};color:${c.text};">${prog.type}</span>
+      `;
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // blur 방지
+        input.value = prog.name;
+        dropdown.classList.add('hidden');
+      });
+      dropdown.appendChild(item);
+    });
+    dropdown.classList.remove('hidden');
+  }
+
+  input.addEventListener('focus', () => showDropdown(input.value));
+  input.addEventListener('input', () => showDropdown(input.value));
+  input.addEventListener('blur',  () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+
+  // 키보드 탐색
+  input.addEventListener('keydown', (e) => {
+    const items = [...dropdown.querySelectorAll('.f45-item')];
+    const active = dropdown.querySelector('.f45-item.active');
+    const idx    = items.indexOf(active);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = items[idx + 1] || items[0];
+      if (active) active.classList.remove('active');
+      next?.classList.add('active');
+      next?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = items[idx - 1] || items[items.length - 1];
+      if (active) active.classList.remove('active');
+      prev?.classList.add('active');
+      prev?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && active) {
+      e.preventDefault();
+      input.value = active.querySelector('.f45-item-name').textContent;
+      dropdown.classList.add('hidden');
+    } else if (e.key === 'Escape') {
+      dropdown.classList.add('hidden');
+    }
+  });
+}
+
+/* ══════════════════════
    초기화
 ══════════════════════ */
 async function init() {
@@ -753,6 +876,9 @@ async function init() {
 
   // 운동
   document.getElementById('save-exercise-btn').addEventListener('click', saveExercise);
+
+  // F45 프로그램 자동완성
+  initF45Autocomplete();
 
   // 내 기록 날짜 보기
   document.getElementById('diary-dates-btn').addEventListener('click', async () => {

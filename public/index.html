@@ -177,7 +177,10 @@
           <!-- 오늘의 프로그램 -->
           <div class="exercise-field">
             <label class="field-label">🏷️ 오늘의 프로그램</label>
-            <input type="text" id="ex-program" class="ex-input" placeholder="예: Athletica 45, Hollywood, Panthers..." />
+            <div class="ex-program-wrap">
+              <input type="text" id="ex-program" class="ex-input" placeholder="예: Hollywood, Panthers, Athletica..." autocomplete="off" />
+              <div class="f45-dropdown hidden" id="f45-dropdown"></div>
+            </div>
           </div>
 
           <!-- 갤럭시 워치 기록 -->

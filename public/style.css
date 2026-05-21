@@ -484,7 +484,7 @@ main {
   align-items: center;
   justify-content: center;
 }
-.lightbox-img {
+.lightbox-img, .lightbox-video {
   max-width: 95vw;
   max-height: 90vh;
   object-fit: contain;
@@ -558,7 +558,7 @@ main {
   border-color: #0284c7;
   box-shadow: 0 0 0 3px rgba(2,132,199,0.25);
 }
-.photo-item img {
+.photo-item img, .photo-thumb-video {
   width: 100%; height: 100%;
   object-fit: cover; display: block;
 }
@@ -587,6 +587,26 @@ main {
   background: rgba(239,68,68,0.85);
   color: #fff;
 }
+/* 동영상 썸네일 재생 버튼 */
+.photo-video-play {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; color: #fff;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px; cursor: pointer;
+  transition: background 0.15s;
+}
+.photo-video-play:hover { background: rgba(0,0,0,0.5); }
+/* 대기 동영상 미리보기 */
+.pending-video { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 8px; }
+.pending-item { position: relative; }
+.pending-video-badge {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: #fff;
+  background: rgba(0,0,0,0.25); border-radius: 8px; pointer-events: none;
+}
+
 .featured-badge {
   position: absolute;
   top: 5px; left: 5px;

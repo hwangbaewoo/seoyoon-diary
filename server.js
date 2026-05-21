@@ -37,10 +37,10 @@ async function saveUser(googleId, userData) {
 /* ── 업로드 설정 (메모리 → Supabase Storage) ── */
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('이미지 파일만 업로드할 수 있어요'));
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) cb(null, true);
+    else cb(new Error('이미지 또는 동영상 파일만 업로드할 수 있어요'));
   },
 });
 
@@ -167,7 +167,8 @@ app.post('/api/photos/:date/:type', requireLogin, (req, res, next) => {
   const publicUrl = urlData.publicUrl;
   const data = await getUser(req.user.id);
   if (!data.photos[date]) data.photos[date] = { featured: null, items: [] };
-  data.photos[date].items.push({ url: publicUrl, type, uploadedAt: new Date().toISOString() });
+  const mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
+  data.photos[date].items.push({ url: publicUrl, type, mediaType, uploadedAt: new Date().toISOString() });
   if (!data.photos[date].featured) data.photos[date].featured = publicUrl;
   await saveUser(req.user.id, data);
 

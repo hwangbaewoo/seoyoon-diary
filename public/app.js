@@ -578,11 +578,13 @@ function renderFeaturedPreview() {
 
   const featured = currentPhotosData?.featured;
   if (featured && currentUser) {
-    img.src = featured;
+    const featuredItem = currentPhotosData?.items?.find(i => i.url === featured);
+    const isVideo = featuredItem?.mediaType === 'video';
+    img.src = isVideo ? '' : featured;
+    img.style.display = isVideo ? 'none' : '';
     meta.textContent = `📅 ${formatLabel(currentDate)}`;
     wrap.classList.remove('hidden');
-    // 클릭하면 라이트박스로 크게 보기
-    wrap.onclick = () => openLightbox(featured);
+    wrap.onclick = () => openLightbox(featured, isVideo ? 'video' : 'image');
   } else {
     wrap.classList.add('hidden');
     wrap.onclick = null;
@@ -601,10 +603,14 @@ function renderPhotos() {
 
     items.forEach(item => {
       const isFeatured = item.url === featured;
+      const isVideo    = item.mediaType === 'video';
       const el = document.createElement('div');
       el.className = `photo-item${isFeatured ? ' is-featured' : ''}`;
       el.innerHTML = `
-        <img src="${item.url}" alt="사진" loading="lazy" />
+        ${isVideo
+          ? `<video src="${item.url}" muted playsinline class="photo-thumb-video"></video>
+             <div class="photo-video-play">▶</div>`
+          : `<img src="${item.url}" alt="사진" loading="lazy" />`}
         ${isFeatured ? '<div class="featured-badge">⭐ 대표</div>' : ''}
         <div class="photo-item-actions">
           <button class="photo-action-btn photo-star-btn${isFeatured ? ' starred' : ''}"
@@ -614,9 +620,11 @@ function renderPhotos() {
           <button class="photo-action-btn photo-del-btn" data-url="${item.url}">🗑️</button>
         </div>
       `;
-      // 사진 클릭 → 라이트박스
-      el.querySelector('img').addEventListener('click', () => openLightbox(item.url));
-      // 대표 사진 설정
+      // 클릭 → 라이트박스
+      const media = el.querySelector(isVideo ? 'video' : 'img');
+      media.addEventListener('click', () => openLightbox(item.url, isVideo ? 'video' : 'image'));
+      if (isVideo) el.querySelector('.photo-video-play').addEventListener('click', () => openLightbox(item.url, 'video'));
+      // 대표 설정
       el.querySelector('.photo-star-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
         await api('POST', `/api/photos/${currentDate}/featured`, { url: item.url });
@@ -627,7 +635,7 @@ function renderPhotos() {
       // 삭제
       el.querySelector('.photo-del-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm('사진을 삭제할까요?')) return;
+        if (!confirm('삭제할까요?')) return;
         const result = await api('DELETE', `/api/photos/${currentDate}`, { url: item.url });
         currentPhotosData = result.photos;
         renderPhotos();
@@ -669,16 +677,18 @@ function renderPendingPhotos(type) {
   if (!files.length) { pendingArea.innerHTML = ''; return; }
 
   pendingArea.innerHTML = `
-    <p class="pending-label">📋 저장 대기 중 (${files.length}장) — 아래 저장 버튼을 눌러주세요</p>
+    <p class="pending-label">📋 저장 대기 중 (${files.length}개) — 아래 저장 버튼을 눌러주세요</p>
     <div class="pending-grid">
       ${files.map((item, i) => `
         <div class="pending-item">
-          <img src="${item.preview}" alt="미리보기" />
+          ${item.mediaType === 'video'
+            ? `<video src="${item.preview}" muted playsinline class="pending-video"></video><div class="pending-video-badge">▶</div>`
+            : `<img src="${item.preview}" alt="미리보기" />`}
           <button class="pending-del-btn" data-idx="${i}">✕</button>
         </div>
       `).join('')}
     </div>
-    <button class="save-pending-btn" data-type="${type}">💾 저장 (${files.length}장)</button>
+    <button class="save-pending-btn" data-type="${type}">💾 저장 (${files.length}개)</button>
   `;
 
   pendingArea.querySelectorAll('.pending-del-btn').forEach(btn => {
@@ -710,9 +720,11 @@ function initPhotoUploads() {
     function stageFiles(files) {
       if (!currentUser) return;
       for (const file of files) {
-        if (!file.type.startsWith('image/')) continue;
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        if (!isImage && !isVideo) continue;
         if (!pendingPhotos[type]) pendingPhotos[type] = [];
-        pendingPhotos[type].push({ file, preview: URL.createObjectURL(file) });
+        pendingPhotos[type].push({ file, preview: URL.createObjectURL(file), mediaType: isVideo ? 'video' : 'image' });
       }
       renderPendingPhotos(type);
     }
@@ -738,14 +750,29 @@ function initPhotoUploads() {
 /* ══════════════════════
    라이트박스 (사진 크게 보기)
 ══════════════════════ */
-function openLightbox(src) {
-  const lb  = document.getElementById('lightbox');
-  const img = document.getElementById('lightbox-img');
-  img.src = src;
+function openLightbox(src, mediaType = 'image') {
+  const lb    = document.getElementById('lightbox');
+  const img   = document.getElementById('lightbox-img');
+  const video = document.getElementById('lightbox-video');
+  if (mediaType === 'video') {
+    video.src = src;
+    video.classList.remove('hidden');
+    img.classList.add('hidden');
+    img.src = '';
+  } else {
+    img.src = src;
+    img.classList.remove('hidden');
+    video.classList.add('hidden');
+    video.pause();
+    video.src = '';
+  }
   lb.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 function closeLightbox() {
+  const video = document.getElementById('lightbox-video');
+  video.pause();
+  video.src = '';
   document.getElementById('lightbox').classList.add('hidden');
   document.body.style.overflow = '';
 }

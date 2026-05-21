@@ -131,10 +131,10 @@
       <div class="card photo-card">
         <p class="section-title">📸 일기 사진</p>
         <div class="photo-upload-area" id="upload-diary" data-type="diary">
-          <input type="file" accept="image/*" class="photo-file-input" id="file-diary" multiple />
+          <input type="file" accept="image/*,video/*" class="photo-file-input" id="file-diary" multiple />
           <label for="file-diary" class="photo-upload-label">
             <span class="upload-icon">🖼️</span>
-            <span>사진을 선택하거나 여기에 끌어다 놓으세요</span>
+            <span>사진·동영상을 선택하거나 여기에 끌어다 놓으세요</span>
           </label>
         </div>
         <div class="photo-grid" id="grid-diary"></div>
@@ -253,10 +253,10 @@
       <div class="card photo-card">
         <p class="section-title">📸 운동 사진</p>
         <div class="photo-upload-area" data-type="exercise">
-          <input type="file" accept="image/*" class="photo-file-input" id="file-exercise" multiple />
+          <input type="file" accept="image/*,video/*" class="photo-file-input" id="file-exercise" multiple />
           <label for="file-exercise" class="photo-upload-label">
             <span class="upload-icon">🖼️</span>
-            <span>사진을 선택하거나 여기에 끌어다 놓으세요</span>
+            <span>사진·동영상을 선택하거나 여기에 끌어다 놓으세요</span>
           </label>
         </div>
         <div class="photo-grid" id="grid-exercise"></div>
@@ -325,10 +325,10 @@
       <div class="card photo-card">
         <p class="section-title">📸 식단 사진</p>
         <div class="photo-upload-area" data-type="food">
-          <input type="file" accept="image/*" class="photo-file-input" id="file-food" multiple />
+          <input type="file" accept="image/*,video/*" class="photo-file-input" id="file-food" multiple />
           <label for="file-food" class="photo-upload-label">
             <span class="upload-icon">🖼️</span>
-            <span>사진을 선택하거나 여기에 끌어다 놓으세요</span>
+            <span>사진·동영상을 선택하거나 여기에 끌어다 놓으세요</span>
           </label>
         </div>
         <div class="photo-grid" id="grid-food"></div>
@@ -369,12 +369,13 @@
     </div>
   </div>
 
-  <!-- 사진 라이트박스 -->
+  <!-- 사진·동영상 라이트박스 -->
   <div class="lightbox hidden" id="lightbox">
     <div class="lightbox-overlay" id="lightbox-overlay"></div>
     <div class="lightbox-inner">
       <button class="lightbox-close" id="lightbox-close">✕</button>
-      <img class="lightbox-img" id="lightbox-img" src="" alt="사진 크게 보기" />
+      <img class="lightbox-img hidden" id="lightbox-img" src="" alt="사진 크게 보기" />
+      <video class="lightbox-video hidden" id="lightbox-video" controls playsinline></video>
     </div>
   </div>
 

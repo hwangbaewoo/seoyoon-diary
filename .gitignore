@@ -1,15 +1,10 @@
-# 비밀 키 — 절대 GitHub에 올리면 안 됨
+﻿node_modules/
 .env
-
-# 데이터 파일 (개인 일기 데이터)
+.env.local
 data/
-
-# 업로드된 사진 (개인 사진)
-public/uploads/
-
-# Node.js
-node_modules/
-
-# 로그
 *.log
 npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

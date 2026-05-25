@@ -127,17 +127,33 @@ app.get('/api/calendar/:year/:month', async (req, res) => {
   const prefix = `${year}-${month.padStart(2, '0')}`;
   const data = await getUser(req.user.id);
   const result = {};
-  Object.entries(data.mood).forEach(([date, entry]) => {
-    if (date.startsWith(prefix)) result[date] = { emoji: entry.emoji, emotion: entry.emotion };
+
+  // 해당 월에 기록이 있는 날짜 모두 수집
+  const allDates = new Set();
+  ['mood', 'food', 'diary', 'exercise', 'photos'].forEach(key => {
+    if (data[key]) Object.keys(data[key]).filter(d => d.startsWith(prefix)).forEach(d => allDates.add(d));
   });
-  if (data.photos) {
-    Object.entries(data.photos).forEach(([date, pd]) => {
-      if (date.startsWith(prefix) && pd.featured) {
-        if (!result[date]) result[date] = {};
-        result[date].featured = pd.featured;
-      }
-    });
-  }
+
+  allDates.forEach(date => {
+    result[date] = {};
+    // 감정 (이모지)
+    if (data.mood?.[date]) {
+      result[date].emoji   = data.mood[date].emoji;
+      result[date].emotion = data.mood[date].emotion;
+    }
+    // 대표 사진
+    if (data.photos?.[date]?.featured) result[date].featured = data.photos[date].featured;
+    // 운동 기록 여부
+    if (data.exercise?.[date]) result[date].hasExercise = true;
+    // 일기 기록 여부
+    if (data.diary?.[date]?.text) result[date].hasDiary = true;
+    // 식단 기록 여부 (한 끼라도 있으면)
+    if (data.food?.[date]) {
+      const hasFood = MEALS.some(m => (data.food[date][m] || []).length > 0);
+      if (hasFood) result[date].hasFood = true;
+    }
+  });
+
   res.json(result);
 });
 

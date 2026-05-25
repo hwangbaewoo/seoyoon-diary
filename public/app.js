@@ -5,53 +5,81 @@
 /* ── F45 프로그램 목록 ── */
 const F45_PROGRAMS = [
   // Cardio
-  { name: '22',           type: 'Cardio' },
-  { name: 'Abacus',       type: 'Cardio' },
-  { name: 'Athletica',    type: 'Cardio' },
-  { name: 'Bears',        type: 'Cardio' },
-  { name: 'Brixton',      type: 'Cardio' },
-  { name: 'Brooklyn',     type: 'Cardio' },
-  { name: 'Docklands',    type: 'Cardio' },
-  { name: 'Firestorm',    type: 'Cardio' },
-  { name: 'Foxtrot',      type: 'Cardio' },
-  { name: 'Gravity',      type: 'Cardio' },
-  { name: 'MVP',          type: 'Cardio' },
-  { name: 'Pipeline',     type: 'Cardio' },
-  { name: 'Quarterbacks', type: 'Cardio' },
-  { name: 'Templars',     type: 'Cardio' },
-  { name: 'Triple Double',type: 'Cardio' },
-  { name: 'Varsity',      type: 'Cardio' },
+  { name: '22',              type: 'Cardio' },
+  { name: 'Abacus',          type: 'Cardio' },
+  { name: 'Afterglow',       type: 'Cardio' },
+  { name: 'Athletica',       type: 'Cardio' },
+  { name: 'Bears',           type: 'Cardio' },
+  { name: 'Brixton',         type: 'Cardio' },
+  { name: 'Brooklyn',        type: 'Cardio' },
+  { name: 'Docklands',       type: 'Cardio' },
+  { name: 'Empire',          type: 'Cardio' },
+  { name: 'Firestorm',       type: 'Cardio' },
+  { name: 'Foxtrot',         type: 'Cardio' },
+  { name: 'Gravity',         type: 'Cardio' },
+  { name: 'Marathon',        type: 'Cardio' },
+  { name: 'MVP',             type: 'Cardio' },
+  { name: 'Pipeline',        type: 'Cardio' },
+  { name: 'Quarterbacks',    type: 'Cardio' },
+  { name: 'Redline',         type: 'Cardio' },
+  { name: 'Templars',        type: 'Cardio' },
+  { name: 'Triple Double',   type: 'Cardio' },
+  { name: 'Triple Threat',   type: 'Cardio' },
+  { name: 'Varsity',         type: 'Cardio' },
   // Resistance
-  { name: 'All-Star',     type: 'Resistance' },
-  { name: 'Angry Bird',   type: 'Resistance' },
-  { name: 'Hammer',       type: 'Resistance' },
-  { name: 'Mkatz',        type: 'Resistance' },
-  { name: 'Moon Hopper',  type: 'Resistance' },
-  { name: 'Panthers',     type: 'Resistance' },
-  { name: 'Pegasus',      type: 'Resistance' },
-  { name: 'Red Diamond',  type: 'Resistance' },
-  { name: 'Renegade',     type: 'Resistance' },
-  { name: 'Romans',       type: 'Resistance' },
-  { name: 'Tokyo Disco',  type: 'Resistance' },
+  { name: 'All-Star',        type: 'Resistance' },
+  { name: 'Alpha',           type: 'Resistance' },
+  { name: 'Angry Bird',      type: 'Resistance' },
+  { name: 'Benchmark',       type: 'Resistance' },
+  { name: 'Deuces',          type: 'Resistance' },
+  { name: 'Double Down',     type: 'Resistance' },
+  { name: 'Gemini',          type: 'Resistance' },
+  { name: 'Goat',            type: 'Resistance' },
+  { name: 'Hammer',          type: 'Resistance' },
+  { name: 'Iceberg',         type: 'Resistance' },
+  { name: 'Liberty',         type: 'Resistance' },
+  { name: 'Lonestar',        type: 'Resistance' },
+  { name: 'Mkatz',           type: 'Resistance' },
+  { name: 'Moon Hopper',     type: 'Resistance' },
+  { name: 'Panthers',        type: 'Resistance' },
+  { name: 'Pegasus',         type: 'Resistance' },
+  { name: 'Red Diamond',     type: 'Resistance' },
+  { name: 'Renegade',        type: 'Resistance' },
+  { name: 'Romans',          type: 'Resistance' },
+  { name: 'The Piston',      type: 'Resistance' },
+  { name: 'Titans',          type: 'Resistance' },
+  { name: 'Tokyo Disco',     type: 'Resistance' },
+  { name: 'Two Fold',        type: 'Resistance' },
+  { name: 'Wyvern',          type: 'Resistance' },
   // Hybrid
-  { name: '3-Peat',       type: 'Hybrid' },
-  { name: 'Apex',         type: 'Hybrid' },
-  { name: 'Checkmate',    type: 'Hybrid' },
-  { name: 'Hollywood',    type: 'Hybrid' },
-  { name: 'Loyals',       type: 'Hybrid' },
-  { name: 'Miami Nights', type: 'Hybrid' },
-  { name: 'Mont Blanc',   type: 'Hybrid' },
-  { name: 'Seoul Rush',   type: 'Hybrid' },
-  { name: 'SoCal',        type: 'Hybrid' },
-  { name: 'T10',          type: 'Hybrid' },
-  { name: 'The Joker',    type: 'Hybrid' },
-  { name: 'The Nines',    type: 'Hybrid' },
-  { name: 'West Hollywood',type:'Hybrid' },
-  { name: 'Wingman',      type: 'Hybrid' },
+  { name: '3-Peat',          type: 'Hybrid' },
+  { name: 'Apex',            type: 'Hybrid' },
+  { name: 'Checkmate',       type: 'Hybrid' },
+  { name: 'Forty Five',      type: 'Hybrid' },
+  { name: 'Heroes Hollywood',type: 'Hybrid' },
+  { name: 'High Rise',       type: 'Hybrid' },
+  { name: 'Hollywood',       type: 'Hybrid' },
+  { name: 'Loyals',          type: 'Hybrid' },
+  { name: 'Miami Nights',    type: 'Hybrid' },
+  { name: 'Mont Blanc',      type: 'Hybrid' },
+  { name: 'NoHo',            type: 'Hybrid' },
+  { name: 'Seoul Rush',      type: 'Hybrid' },
+  { name: 'SoCal',           type: 'Hybrid' },
+  { name: 'Special Ops',     type: 'Hybrid' },
+  { name: 'T10',             type: 'Hybrid' },
+  { name: 'Tempest',         type: 'Hybrid' },
+  { name: 'The Joker',       type: 'Hybrid' },
+  { name: 'The Nines',       type: 'Hybrid' },
+  { name: 'The Wringer',     type: 'Hybrid' },
+  { name: 'Track Stars',     type: 'Hybrid' },
+  { name: 'Valor',           type: 'Hybrid' },
+  { name: 'West Hollywood',  type: 'Hybrid' },
+  { name: 'Wingman',         type: 'Hybrid' },
   // Recovery
-  { name: 'Calypso Kings',type: 'Recovery' },
-  { name: 'Mondrian 30',  type: 'Recovery' },
-  { name: 'Reset',        type: 'Recovery' },
+  { name: 'Calypso Kings',   type: 'Recovery' },
+  { name: 'Flow',            type: 'Recovery' },
+  { name: 'Mondrian 30',     type: 'Recovery' },
+  { name: 'Reset',           type: 'Recovery' },
 ];
 
 const MEALS   = ['breakfast','lunch','dinner','snack'];
@@ -347,6 +375,7 @@ async function saveDiary() {
     await api('POST', '/api/diary', { date: currentDate, text });
     currentDiaryData = { text };
     document.getElementById('delete-diary-btn').classList.remove('hidden');
+    renderCalendar();
     showFeedback('diary-feedback','일기 저장됐어요 ✓','success');
   } catch { showFeedback('diary-feedback','저장 실패','error'); }
 }
@@ -356,6 +385,7 @@ async function deleteDiary() {
   await api('DELETE', `/api/diary/${currentDate}`);
   currentDiaryData = null;
   renderDiary();
+  renderCalendar();
 }
 
 /* ══════════════════════
@@ -409,6 +439,7 @@ async function saveExercise() {
       avgHR:    parseInt(avgHR)||0,
     };
     renderExercise();
+    renderCalendar();
     showFeedback('exercise-feedback','운동 기록 저장됐어요 ✓','success');
   } catch { showFeedback('exercise-feedback','저장 실패','error'); }
 }
@@ -432,6 +463,7 @@ async function deleteExercise() {
   await api('DELETE', `/api/exercise/${currentDate}`);
   currentExerciseData = null;
   renderExercise();
+  renderCalendar();
 }
 
 /* ══════════════════════
@@ -474,10 +506,12 @@ async function addFood(meal) {
   if (isNaN(kcal) || kcal < 0) { kcalInput.focus(); return; }
   await api('POST', '/api/food', { date: currentDate, meal, name, kcal });
   if (!currentFoodData) currentFoodData = { breakfast:[],lunch:[],dinner:[],snack:[] };
+  const wasEmpty = !currentFoodData || !Object.values(currentFoodData).some(arr => arr.length > 0);
   currentFoodData[meal].push({ name, kcal });
   nameInput.value = ''; kcalInput.value = '';
   nameInput.focus();
   renderFoodTab();
+  if (wasEmpty) renderCalendar(); // 첫 항목 추가 시 캘린더 갱신
 }
 
 async function deleteFood(meal, idx) {
@@ -554,7 +588,13 @@ async function renderCalendar() {
     cell.dataset.date = dateStr;
     cell.innerHTML = `
       <span class="cal-day-num">${d}</span>
-      ${entry ? `<span class="cal-day-emoji">${entry.emoji}</span>` : ''}
+      ${entry?.emoji ? `<span class="cal-day-emoji">${entry.emoji}</span>` : ''}
+      ${(entry?.hasExercise || entry?.hasFood || entry?.hasDiary) ? `
+        <div class="cal-icons">
+          ${entry.hasExercise ? '<span class="cal-icon" title="운동">💪</span>' : ''}
+          ${entry.hasFood     ? '<span class="cal-icon" title="식단">🍽️</span>' : ''}
+          ${entry.hasDiary    ? '<span class="cal-icon" title="일기">✏️</span>' : ''}
+        </div>` : ''}
     `;
     cell.addEventListener('click', () => setCurrentDate(dateStr));
     grid.appendChild(cell);

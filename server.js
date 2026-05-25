@@ -174,14 +174,24 @@ const FOOD_DB = [
 
 /* ── 한국 프랜차이즈 메뉴 DB ── */
 const FRANCHISE_DB = [
-  // ── 프레퍼스 (포케볼) ──
-  { brand: '프레퍼스', menu: '클래식 포케볼', kcal: 550, note: '기본 구성 기준' },
-  { brand: '프레퍼스', menu: '연어 포케볼', kcal: 580, note: '기본 구성 기준' },
-  { brand: '프레퍼스', menu: '참치 포케볼', kcal: 520, note: '기본 구성 기준' },
-  { brand: '프레퍼스', menu: '새우 포케볼', kcal: 500, note: '기본 구성 기준' },
-  { brand: '프레퍼스', menu: '닭가슴살 포케볼', kcal: 490, note: '기본 구성 기준' },
-  { brand: '프레퍼스', menu: '스파이시 참치 포케볼', kcal: 535, note: '기본 구성 기준' },
-  { brand: '프레퍼스', menu: '아보카도 포케볼', kcal: 600, note: '기본 구성 기준' },
+  // ── 프레퍼스 ──
+  { brand: '프레퍼스', menu: '포크 플레이트', kcal: 244, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '비프 플레이트', kcal: 385, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '치킨 샐러드 파스타', kcal: 410, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '치킨 로제 샐러드 파스타', kcal: 421, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '포크 샐러드 파스타', kcal: 437, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '포크 로제 샐러드 파스타', kcal: 448, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '치킨 데리야끼 덮밥', kcal: 492, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '포크 명이나물 덮밥', kcal: 526, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '비프 샐러드 파스타', kcal: 578, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '비프 로제 샐러드 파스타', kcal: 589, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '치킨 커리 덮밥', kcal: 591, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '비프 와사비 덮밥', kcal: 612, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '더블 치킨 데리야끼 덮밥', kcal: 613, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '포크 커리 덮밥', kcal: 622, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '더블 포크 명이나물 덮밥', kcal: 662, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '비프 커리 덮밥', kcal: 731, note: '1인분 기준' },
+  { brand: '프레퍼스', menu: '비프 청양 들기름 파스타', kcal: 745, note: '1인분 기준' },
 
   // ── 맥도날드 ──
   { brand: '맥도날드', menu: '빅맥', kcal: 530, note: '1개 기준' },

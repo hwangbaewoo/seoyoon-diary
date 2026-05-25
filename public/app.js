@@ -345,7 +345,7 @@ function renderDiary() {
     // 저장된 일기가 있으면 읽기 전용처럼 보이게 (수정 버튼 표시)
     textarea.value = currentDiaryData.text || '';
     textarea.readOnly = true;
-    textarea.style.background = '#f0f9ff';
+    textarea.style.background = '';
     saveBtn.classList.add('hidden');
     editBtn.classList.remove('hidden');
     deleteBtn.classList.remove('hidden');
@@ -501,7 +501,9 @@ async function addFood(meal) {
   const nameInput = card.querySelector('.food-input');
   const kcalInput = card.querySelector('.kcal-input');
   const name = nameInput.value.trim();
-  const kcal = parseInt(kcalInput.value, 10);
+  // 칼로리 비워두면 0으로 처리 (직접 입력 허용)
+  const kcalRaw = kcalInput.value.trim();
+  const kcal = kcalRaw === '' ? 0 : parseInt(kcalRaw, 10);
   if (!name) { nameInput.focus(); return; }
   if (isNaN(kcal) || kcal < 0) { kcalInput.focus(); return; }
   await api('POST', '/api/food', { date: currentDate, meal, name, kcal });
@@ -935,6 +937,222 @@ function initF45Autocomplete() {
 }
 
 /* ══════════════════════
+   브랜드 메뉴 온라인 검색
+══════════════════════ */
+function initBrandSearch() {
+  document.querySelectorAll('.meal-card').forEach(card => {
+    const meal      = card.dataset.meal;
+    const addRow    = card.querySelector('.add-row');
+    const nameInput = card.querySelector('.food-input');
+    const kcalInput = card.querySelector('.kcal-input');
+    if (!addRow || !nameInput || !kcalInput) return;
+
+    // 🏪 버튼 추가
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'brand-toggle-btn';
+    toggleBtn.title = '브랜드 메뉴 검색';
+    toggleBtn.textContent = '🏪';
+    addRow.appendChild(toggleBtn);
+
+    // 브랜드 검색 패널 생성
+    const panel = document.createElement('div');
+    panel.className = 'brand-search-panel hidden';
+    panel.innerHTML = `
+      <div class="brand-panel-header">
+        <span class="brand-panel-title">🏪 브랜드 메뉴 검색</span>
+        <button class="brand-back-btn" type="button">← 이전</button>
+      </div>
+      <div class="brand-input-row">
+        <input class="brand-name-input" type="text" placeholder="브랜드 (예: 프레퍼스, 스타벅스)" />
+        <input class="brand-menu-input" type="text" placeholder="메뉴명 (선택, 예: 포크 플레이트)" />
+        <button class="brand-go-btn" type="button">🔍 검색</button>
+      </div>
+      <div class="brand-status hidden"></div>
+      <div class="brand-results"></div>
+    `;
+    addRow.insertAdjacentElement('afterend', panel);
+
+    const brandNameInput = panel.querySelector('.brand-name-input');
+    const brandMenuInput = panel.querySelector('.brand-menu-input');
+    const goBtn          = panel.querySelector('.brand-go-btn');
+    const status         = panel.querySelector('.brand-status');
+    const results        = panel.querySelector('.brand-results');
+    const backBtn        = panel.querySelector('.brand-back-btn');
+
+    // 이전 버튼 → 패널 닫고 일반 입력창으로
+    function closePanel() {
+      panel.classList.add('hidden');
+      toggleBtn.classList.remove('active');
+      nameInput.focus();
+    }
+    backBtn.addEventListener('click', closePanel);
+
+    // 토글
+    toggleBtn.addEventListener('click', () => {
+      const hidden = panel.classList.toggle('hidden');
+      toggleBtn.classList.toggle('active', !hidden);
+      if (!hidden) brandNameInput.focus();
+    });
+
+    // 검색 실행
+    async function doSearch() {
+      const brand = brandNameInput.value.trim();
+      const menu  = brandMenuInput.value.trim();
+      if (!brand && !menu) { brandNameInput.focus(); return; }
+
+      goBtn.disabled = true;
+      goBtn.textContent = '⏳ 검색 중...';
+      status.textContent = '';
+      status.classList.remove('hidden', 'error');
+      results.innerHTML = '';
+
+      try {
+        const res = await fetch(
+          `/api/brand-search?brand=${encodeURIComponent(brand)}&menu=${encodeURIComponent(menu)}`
+        );
+        const items = await res.json();
+
+        if (!items.length) {
+          status.innerHTML = `
+            검색 결과가 없어요.<br>
+            <button class="brand-back-noresult-btn" type="button">← 이름·칼로리 직접 입력하기</button>
+          `;
+          status.classList.remove('hidden');
+          status.querySelector('.brand-back-noresult-btn').addEventListener('click', closePanel);
+        } else {
+          results.innerHTML = '';
+          items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'brand-result-item';
+            el.innerHTML = `
+              <div class="brand-result-main">
+                <span class="brand-result-name">${escapeHtml(item.name)}</span>
+                <span class="brand-result-brand">${escapeHtml(item.brand)}</span>
+              </div>
+              <div class="brand-result-right">
+                <span class="brand-result-kcal">${item.kcal} kcal</span>
+                <span class="brand-result-note">${item.note}</span>
+              </div>
+            `;
+            el.addEventListener('click', () => {
+              nameInput.value = item.name;
+              kcalInput.value = item.kcal;
+              panel.classList.add('hidden');
+              toggleBtn.classList.remove('active');
+            });
+            results.appendChild(el);
+          });
+        }
+      } catch {
+        status.textContent = '검색 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+        status.classList.add('error');
+        status.classList.remove('hidden');
+      }
+
+      goBtn.disabled = false;
+      goBtn.textContent = '🔍 검색';
+    }
+
+    goBtn.addEventListener('click', doSearch);
+    brandMenuInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    brandNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') brandMenuInput.focus(); });
+  });
+}
+
+/* ══════════════════════
+   음식 칼로리 자동완성
+══════════════════════ */
+function initFoodSearch() {
+  document.querySelectorAll('.meal-card').forEach(card => {
+    const nameInput = card.querySelector('.food-input');
+    const kcalInput = card.querySelector('.kcal-input');
+    if (!nameInput || !kcalInput) return;
+
+    // 드롭다운 컨테이너 생성
+    const wrap = document.createElement('div');
+    wrap.className = 'food-search-wrap';
+    nameInput.parentNode.insertBefore(wrap, nameInput);
+    wrap.appendChild(nameInput);
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'food-suggest-dropdown hidden';
+    wrap.appendChild(dropdown);
+
+    let debounceTimer = null;
+
+    function showSuggestions(items) {
+      dropdown.innerHTML = '';
+      if (!items.length) { dropdown.classList.add('hidden'); return; }
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'food-suggest-item';
+        el.innerHTML = `
+          <span class="food-suggest-name">${item.name}</span>
+          <span class="food-suggest-kcal">${item.kcal} kcal</span>
+        `;
+        el.addEventListener('mousedown', e => {
+          e.preventDefault();
+          nameInput.value = item.name;
+          kcalInput.value = item.kcal;
+          dropdown.classList.add('hidden');
+          nameInput.focus();
+        });
+        dropdown.appendChild(el);
+      });
+      dropdown.classList.remove('hidden');
+    }
+
+    async function search(q) {
+      if (!q.trim()) { dropdown.classList.add('hidden'); return; }
+      try {
+        const res = await fetch(`/api/food-search?q=${encodeURIComponent(q)}`);
+        const items = await res.json();
+        showSuggestions(items);
+      } catch { dropdown.classList.add('hidden'); }
+    }
+
+    nameInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => search(nameInput.value), 200);
+    });
+
+    nameInput.addEventListener('focus', () => {
+      if (nameInput.value.trim()) search(nameInput.value);
+    });
+
+    nameInput.addEventListener('blur', () => {
+      setTimeout(() => dropdown.classList.add('hidden'), 150);
+    });
+
+    // 키보드 탐색
+    nameInput.addEventListener('keydown', e => {
+      const items = [...dropdown.querySelectorAll('.food-suggest-item')];
+      const active = dropdown.querySelector('.food-suggest-item.active');
+      const idx = items.indexOf(active);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = items[idx + 1] || items[0];
+        active?.classList.remove('active');
+        next?.classList.add('active');
+        next?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = items[idx - 1] || items[items.length - 1];
+        active?.classList.remove('active');
+        prev?.classList.add('active');
+        prev?.scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && active) {
+        e.preventDefault();
+        active.dispatchEvent(new MouseEvent('mousedown'));
+      } else if (e.key === 'Escape') {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
+}
+
+/* ══════════════════════
    초기화
 ══════════════════════ */
 async function init() {
@@ -1128,6 +1346,8 @@ async function init() {
   });
 
   initPhotoUploads();
+  initFoodSearch();
+  initBrandSearch();
   document.getElementById('save-all-btn').addEventListener('click', saveAllPending);
 
   // 라이트박스 닫기

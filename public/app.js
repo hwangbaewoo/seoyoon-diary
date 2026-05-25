@@ -304,10 +304,13 @@ async function renderMoodHistory() {
       fetch(`/api/calendar/${now.getFullYear()}/${now.getMonth()}`).then(r=>r.json()),
     ]);
     const combined = {...c2,...c1};
-    const dates = Object.keys(combined).sort((a,b)=>b.localeCompare(a)).filter(d=>d!==currentDate);
+    // 감정(emoji) 기록이 실제로 있는 날짜만 필터
+    const dates = Object.keys(combined)
+      .filter(d => d !== currentDate && combined[d]?.emoji)
+      .sort((a, b) => b.localeCompare(a));
     if (!dates.length) { container.innerHTML = '<div class="empty-msg">지난 기록이 없어요!</div>'; return; }
     container.innerHTML = '';
-    dates.slice(0,14).forEach(date => {
+    dates.slice(0, 14).forEach(date => {
       const entry = combined[date];
       const el = document.createElement('div');
       el.className = 'mood-history-item';
@@ -317,13 +320,16 @@ async function renderMoodHistory() {
           <div class="mh-date">${formatLabel(date)}</div>
           <div class="mh-label">${EMOTION_KO[entry.emotion] || entry.emotion}</div>
         </div>
-        <button class="mh-del" data-date="${date}">✕</button>
+        <button class="mh-del" data-date="${date}" title="삭제">✕</button>
       `;
       el.querySelector('.mh-del').addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm('삭제할까요?')) return;
-        await api('DELETE', `/api/mood/${date}`);
-        renderCalendar(); renderMoodHistory();
+        if (!confirm('이 날의 감정 기록을 삭제할까요?')) return;
+        try {
+          await api('DELETE', `/api/mood/${date}`);
+          el.remove(); // 즉시 화면에서 제거
+          renderCalendar();
+        } catch { alert('삭제 실패'); }
       });
       el.addEventListener('click', () => setCurrentDate(date));
       container.appendChild(el);
